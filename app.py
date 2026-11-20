@@ -1,5 +1,11 @@
 from flask import Flask, session, redirect, url_for, request, render_template, send_file
 import os
+import sys
+
+# Entry point lives at the project root (so `gunicorn app:app` works on Render);
+# the rest of the backend code is in backend/, so make it importable.
+ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(ROOT, "backend"))
 
 # ------------------------------ [Imports & Config] ------------------------------
 from db import init_all
@@ -8,7 +14,7 @@ from config import SECRET_KEY
 from utils import format_amount, huf
 from backup_utils import get_db_info, get_backup_bytes, restore_from_bytes
 
-app = Flask(__name__, template_folder=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend"))
+app = Flask(__name__, template_folder=os.path.join(ROOT, "frontend"))
 app.secret_key = SECRET_KEY
 
 # Register Jinja filters
