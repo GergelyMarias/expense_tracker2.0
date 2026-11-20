@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit Income Record</title>
+  <style>
+    /* --- Styles aligned with Finance Application --- */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f5f6fa; padding: 2em; color: #2f3640; }
+    
+    .container { max-width: 800px; margin: 0 auto; }
+    
+    header { 
+        background: #44bd32; color: white; padding: 1.5rem; 
+        border-radius: 12px; margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        display: flex; align-items: center; gap: 12px;
+    }
+    header h1 { font-size: 1.2rem; margin: 0; }
+
+    .card { 
+        background: white; padding: 2rem; border-radius: 12px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        border-left: 5px solid #44bd32;
+    }
+
+    /* --- Form Styling --- */
+    .form-group { margin-bottom: 1.5rem; }
+    label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #7f8c8d; }
+    
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 1.5rem; }
+    
+    input, select { 
+        width: 100%; padding: 10px 15px; border: 1px solid #dcdde1; 
+        border-radius: 8px; font-size: 0.95rem; transition: 0.2s;
+    }
+    
+    input:focus, select:focus { 
+        outline: none; border-color: #44bd32; 
+        box-shadow: 0 0 0 3px rgba(68, 189, 50, 0.1); 
+    }
+
+    .actions { display: flex; gap: 12px; align-items: center; margin-top: 2rem; }
+
+    .btn { 
+        padding: 10px 25px; border-radius: 8px; border: none; 
+        cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s; 
+    }
+    .btn-save { background: #44bd32; color: white; }
+    .btn-save:hover { background: #40a92e; transform: translateY(-1px); }
+    
+    .btn-cancel { 
+        background: #f1f2f6; color: #7f8c8d; text-decoration: none; 
+        display: inline-block; text-align: center;
+        padding: 10px 25px; border-radius: 8px;
+    }
+    .btn-cancel:hover { background: #e1e2e6; color: #2f3640; }
+
+    @media (max-width: 600px) {
+        .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>💰 Edit Income Record</h1>
+    </header>
+
+    <div class="card">
+        <form method="POST" action="/income/edit/{{ income.id }}?month={{ month }}&year={{ year }}">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" name="date" value="{{ income.date }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Source / Description</label>
+                <input type="text" name="description" value="{{ income.description }}" placeholder="e.g. Salary, Freelance..." required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" name="amount" step="0.01" value="{{ income.amount }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <select name="currency">
+                        <option value="HUF" {% if income.currency == 'HUF' %}selected{% endif %}>HUF</option>
+                        <option value="EUR" {% if income.currency == 'EUR' %}selected{% endif %}>EUR</option>
+                        <option value="USD" {% if income.currency == 'USD' %}selected{% endif %}>USD</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-save">Save Changes</button>
+                <a href="/expenses?month={{ month }}&year={{ year }}" class="btn btn-cancel">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

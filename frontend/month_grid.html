@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page.title }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f6fa; padding: 2em; color: #2f3640; margin: 0; }
+        header {
+            background: #40739e; color: white; padding: 1rem 2rem;
+            border-radius: 12px; display: flex; justify-content: space-between;
+            align-items: center; max-width: 1200px; margin: 0 auto 1.5rem auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        header h1 { font-size: 1.2rem; margin: 0; }
+        header nav a { color: white; text-decoration: none; font-weight: bold; margin-left: 20px; font-size: 0.9rem; }
+        .container { max-width: 1400px; margin: auto; }
+
+        .toolbar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .toolbar .right { margin-left: auto; display: flex; align-items: center; gap: 0.8rem; }
+        .toggle { display: inline-flex; background: #dcdde1; border-radius: 8px; padding: 3px; }
+        .toggle button { border: none; background: transparent; padding: 0.55em 1.3em; border-radius: 6px; font-weight: 600; font-family: inherit; cursor: pointer; color: #2f3640; }
+        .toggle button.active { background: #40739e; color: white; }
+        .toggle button:disabled { color: #95a5a6; cursor: not-allowed; }
+        select { padding: 0.5em 0.8em; border: 1px solid #dcdde1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; background: white; }
+        .status { font-size: 0.85rem; color: #7f8c8d; }
+        .status.err { color: #e84118; }
+        .btn-save { padding: 0.6em 1.6em; border: none; border-radius: 8px; background: #44bd32; color: white; font-weight: 700; font-family: inherit; cursor: pointer; }
+        .btn-discard { padding: 0.6em 1.2em; border: 1px solid #e84118; border-radius: 8px; background: white; color: #e84118; font-weight: 700; font-family: inherit; cursor: pointer; }
+        .btn-discard[hidden] { display: none; }
+        .btn-save:disabled { background: #dcdde1; color: #7f8c8d; cursor: default; }
+
+        .table-card { background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        /* Scroll area has no padding, so nothing can show to the left of the sticky column */
+        .scroll { overflow-x: auto; }
+        table { border-collapse: separate; border-spacing: 0; font-size: 0.88rem; width: 100%; }
+        th { background: #40739e; color: white; padding: 10px 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+        td { border-bottom: 1px solid #ecf0f1; padding: 2px 4px; white-space: nowrap; background: white; }
+
+        /* Sticky category column: opaque, above scrolled cells, with a divider edge */
+        th:first-child, td:first-child {
+            position: sticky; left: 0; z-index: 2; text-align: left;
+            box-shadow: 2px 0 0 #dcdde1; padding-right: 14px;
+        }
+        th:first-child { background: #40739e; z-index: 3; }
+        td:first-child { font-weight: 600; }
+
+        tr.sum-row td { font-weight: 700; background: #eef3f8; border-bottom: 2px solid #40739e; }
+
+        td input { width: 105px; padding: 6px; border: 1px solid transparent; border-radius: 4px; text-align: right; font-family: inherit; font-size: inherit; background: transparent; font-variant-numeric: tabular-nums; }
+        td input:hover { border-color: #dcdde1; }
+        td input:focus { outline: none; border-color: #40739e; background: #f5f9fc; }
+        td input.dirty { background: #fff6d6; border-color: #f1c40f; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; padding: 6px 8px; }
+        .total-col { font-weight: 700; background: #f5f6fa; }
+        tr.new td:first-child { color: #44bd32; }
+
+        .add-row { display: flex; gap: 0.5rem; margin-top: 1rem; }
+        .add-row input { padding: 8px 10px; border: 1px solid #dcdde1; border-radius: 6px; font-family: inherit; width: 240px; }
+        .add-row button { padding: 8px 16px; border: none; border-radius: 6px; background: #40739e; color: white; font-weight: 600; cursor: pointer; }
+        [hidden] { display: none !important; }
+        /* Mirrored scrollbar above a horizontally scrollable area */
+        .scroll-top { overflow-x: auto; overflow-y: hidden; height: 14px; margin-bottom: 4px; }
+        .scroll-top > div { height: 1px; }
+        .chart-title { font-size: 1rem; margin: 0 0 0.6rem 0; }
+        .legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; font-size: 0.8rem; color: #2f3640; margin-bottom: 0.8rem; }
+        .legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+        .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+        .chart-box { height: 460px; position: relative; }
+        .empty { color: #7f8c8d; padding: 1rem 0.5rem; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+        .btn-copy { padding: 0.55em 1.2em; border: none; border-radius: 8px; background: #f1c40f; color: #2c3e50; font-weight: 700; font-family: inherit; cursor: pointer; }
+        .btn-copy:disabled { opacity: 0.6; cursor: default; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>{{ page.title }}</h1>
+    <nav>
+        <a href="/">🏠 Dashboard</a>
+        <a href="/money">💰 Money</a>
+        <a href="/targets">🎯 Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/database">⚙️ Database</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
+
+<div class="container">
+    <div class="toolbar">
+        <div class="toggle">
+            <button type="button" data-view="annual">Annually</button>
+            <button type="button" data-view="monthly">Monthly</button>
+        </div>
+        <select id="yearSelect" aria-label="Year" class="monthly-only">
+            {% for y in years %}
+            <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+        <div class="right monthly-only">
+            <span id="status" class="status"></span>
+            <button type="button" id="discardBtn" class="btn-discard" hidden>Discard</button>
+            <button type="button" id="saveBtn" class="btn-save" disabled>Save</button>
+        </div>
+    </div>
+
+    <div class="table-card" id="annualView" hidden>
+        <h2 class="chart-title">{{ page.chart_title }}</h2>
+        <div class="legend" id="annualLegend"></div>
+        <div class="scroll" id="chartScroll">
+            <div id="chartBox" class="chart-box"><canvas id="annualChart" role="img" aria-label="Stacked bar chart: {{ page.chart_title }}"></canvas></div>
+        </div>
+        <div class="empty" id="annualEmpty" hidden>No {{ page.empty_noun }} recorded yet.</div>
+    </div>
+
+    <div class="table-card" id="monthlyView">
+        <div class="scroll" id="tableScroll">
+            <table id="targetTable">
+                <thead>
+                    <tr>
+                        <th>{{ page.label }}</th>
+                        <th>Total</th>
+                        {% for m, name in months %}<th>{{ name }}</th>{% endfor %}
+                    </tr>
+                    <tr class="sum-row">
+                        <td>Sum</td>
+                        <td class="num" id="grandTotal"></td>
+                        {% for m, name in months %}<td class="num" data-month-total="{{ m }}"></td>{% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in labels %}
+                    <tr data-category="{{ cat }}">
+                        <td>{{ cat }}</td>
+                        <td class="num total-col"></td>
+                        {% for m, name in months %}
+                        {% set v = matrix[cat].get(m) %}
+                        {% set s = '{:,.0f}'.format(v).replace(',', '.') if v is not none else '' %}
+                        <td><input type="text" inputmode="numeric" data-month="{{ m }}" value="{{ s }}" data-orig="{{ s }}"></td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if not labels %}
+        <div class="empty" id="emptyMsg">
+            No {{ page.empty_noun }} recorded for {{ year }} yet.
+            {% if prev_year_has_data %}
+            <button type="button" id="copyPrevBtn" class="btn-copy">Copy from previous year ({{ year - 1 }})</button>
+            or add a row below.
+            {% else %}
+            {{ year - 1 }} has nothing to copy either — add a row below.
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <form class="add-row" id="addForm">
+            <input type="text" id="newCategory" placeholder="{{ page.add_placeholder }}" required>
+            <button type="submit">{{ page.add_button }}</button>
+        </form>
+    </div>
+</div>
+
+<script>
+const YEAR = {{ year }};
+// Whole forints with dot thousand separators: 12.345.678
+const API = '{{ api_url }}';
+const PAGE_URL = '{{ page_url }}';
+const ALLOW_NEG = {{ 'true' if page.allow_negative else 'false' }};
+// Whole forints with dot thousand separators: 12.345.678 / -1.234
+const fmt = n => { const r = Math.round(n); return (r < 0 ? '-' : '') + Math.abs(r).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
+const digits = s => s.replace(/\D/g, '');
+const isNeg = s => ALLOW_NEG && s.trim().startsWith('-');
+// Plain number string to send/parse: digits with optional leading minus
+const clean = s => digits(s) ? (isNeg(s) ? '-' : '') + digits(s) : '';
+const parse = s => parseInt(clean(s), 10) || 0;
+
+// Re-format a cell as the user types, keeping the cursor after the same digit
+function formatInput(inp) {
+    const pos = inp.selectionStart;
+    const digitsBefore = digits(inp.value.slice(0, pos)).length;
+    const neg = isNeg(inp.value);
+    const d = digits(inp.value).replace(/^0+(?=\d)/, '');
+    inp.value = (neg ? '-' : '') + (d ? fmt(+d) : '');
+    let i = neg ? 1 : 0, seen = 0;
+    while (i < inp.value.length && seen < digitsBefore) { if (/\d/.test(inp.value[i])) seen++; i++; }
+    inp.setSelectionRange(i, i);
+}
+const statusEl = document.getElementById('status');
+const saveBtn = document.getElementById('saveBtn');
+const tbody = document.querySelector('#targetTable tbody');
+
+function setStatus(msg, isErr = false) {
+    statusEl.className = 'status' + (isErr ? ' err' : '');
+    statusEl.textContent = msg;
+}
+
+function dirtyInputs() {
+    return [...tbody.querySelectorAll('input')].filter(i => i.value !== i.dataset.orig);
+}
+
+function refresh() {
+    // Totals
+    const monthTotals = Array(13).fill(0);
+    let grand = 0;
+    tbody.querySelectorAll('tr').forEach(tr => {
+        let rowSum = 0;
+        tr.querySelectorAll('input').forEach(inp => {
+            const v = parse(inp.value);
+            rowSum += v;
+            monthTotals[+inp.dataset.month] += v;
+            inp.classList.toggle('dirty', inp.value !== inp.dataset.orig);
+        });
+        tr.querySelector('.total-col').textContent = fmt(rowSum);
+        grand += rowSum;
+    });
+    document.querySelectorAll('[data-month-total]').forEach(td => {
+        td.textContent = fmt(monthTotals[+td.dataset.monthTotal]);
+    });
+    document.getElementById('grandTotal').textContent = fmt(grand);
+
+    // Save button state
+    const n = dirtyInputs().length;
+    saveBtn.disabled = n === 0;
+    saveBtn.textContent = n ? `Save (${n})` : 'Save';
+    document.getElementById('discardBtn').hidden = n === 0 && !tbody.querySelector('tr.new');
+}
+
+document.getElementById('yearSelect').addEventListener('change', e => {
+    if (dirtyInputs().length && !confirm('You have unsaved changes. Discard them?')) {
+        e.target.value = YEAR;
+        return;
+    }
+    window.onbeforeunload = null;
+    location.href = PAGE_URL + '?year=' + e.target.value;
+});
+
+tbody.addEventListener('input', e => { if (e.target.matches('input')) formatInput(e.target); refresh(); });
+tbody.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input')) e.target.blur(); });
+
+saveBtn.addEventListener('click', async () => {
+    const changes = dirtyInputs().map(inp => ({
+        month: +inp.dataset.month,
+        category: inp.closest('tr').dataset.category,
+        amount: clean(inp.value)
+    }));
+    if (!changes.length) return;
+    saveBtn.disabled = true;
+    setStatus('Saving…');
+    try {
+        const res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ year: YEAR, changes })
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status);
+        // Reload so the categories come back re-ordered by annual total
+        window.onbeforeunload = null;
+        location.reload();
+    } catch (err) {
+        setStatus('Save failed: ' + err.message, true);
+        saveBtn.disabled = false;
+    }
+});
+
+window.onbeforeunload = e => { if (dirtyInputs().length) { e.preventDefault(); return ''; } };
+
+document.getElementById('addForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const field = document.getElementById('newCategory');
+    const name = field.value.trim();
+    if (!name) return;
+    const exists = [...tbody.querySelectorAll('tr')].some(tr => tr.dataset.category.toLowerCase() === name.toLowerCase());
+    if (exists) { setStatus(`"${name}" already exists`, true); return; }
+
+    const tr = addRow(name);
+    field.value = '';
+    refresh();
+    tr.querySelector('input').focus();
+    setStatus(`Added "${name}" — enter values, then Save`);
+});
+
+// New unsaved row; values = {month: amount}. Cells start with data-orig="" so they count as unsaved.
+function addRow(name, values = {}) {
+    const tr = document.createElement('tr');
+    tr.className = 'new';
+    tr.dataset.category = name;
+    const label = document.createElement('td');
+    label.textContent = name;
+    tr.appendChild(label);
+    const total = document.createElement('td');
+    total.className = 'num total-col';
+    tr.appendChild(total);
+    for (let m = 1; m <= 12; m++) {
+        const td = document.createElement('td');
+        const inp = document.createElement('input');
+        Object.assign(inp, { type: 'text', inputMode: 'numeric' });
+        inp.dataset.month = m;
+        inp.dataset.orig = '';
+        inp.value = values[m] != null ? fmt(values[m]) : '';
+        td.appendChild(inp);
+        tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+    document.getElementById('emptyMsg')?.remove();
+    return tr;
+}
+
+document.getElementById('discardBtn').addEventListener('click', () => {
+    if (!confirm('Discard all unsaved changes?')) return;
+    window.onbeforeunload = null;
+    location.reload();
+});
+
+document.getElementById('copyPrevBtn')?.addEventListener('click', async e => {
+    e.target.disabled = true;
+    setStatus('Loading…');
+    try {
+        const res = await fetch(`${API}/${YEAR - 1}`);
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status);
+        const { categories } = await res.json();
+        categories.forEach(c => addRow(c.category, c.months));
+        refresh();
+        setStatus(`Copied ${categories.length} rows from ${YEAR - 1} — click Save to keep them, or Discard`);
+    } catch (err) {
+        setStatus('Copy failed: ' + err.message, true);
+        e.target.disabled = false;
+    }
+});
+
+// ------------------------------ [Top + bottom scrollbars] ------------------------------
+function addTopScrollbar(area) {
+    const top = document.createElement('div');
+    top.className = 'scroll-top';
+    const inner = document.createElement('div');
+    top.appendChild(inner);
+    area.parentNode.insertBefore(top, area);
+    let lock = false;
+    const sync = (from, to) => () => { if (lock) return; lock = true; to.scrollLeft = from.scrollLeft; requestAnimationFrame(() => lock = false); };
+    top.addEventListener('scroll', sync(top, area));
+    area.addEventListener('scroll', sync(area, top));
+    const size = () => {
+        inner.style.width = area.scrollWidth + 'px';
+        top.style.visibility = area.scrollWidth > area.clientWidth ? 'visible' : 'hidden';
+    };
+    new ResizeObserver(size).observe(area);
+    if (area.firstElementChild) new ResizeObserver(size).observe(area.firstElementChild);
+    size();
+    return size;
+}
+addTopScrollbar(document.getElementById('tableScroll'));
+const resizeChartScrollbar = addTopScrollbar(document.getElementById('chartScroll'));
+
+// ------------------------------ [View switch] ------------------------------
+let VIEW = '{{ view }}';
+function setView(v) {
+    VIEW = v;
+    document.querySelectorAll('.toggle button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+    document.querySelectorAll('.monthly-only').forEach(el => el.hidden = v !== 'monthly');
+    document.getElementById('monthlyView').hidden = v !== 'monthly';
+    document.getElementById('annualView').hidden = v !== 'annual';
+    const url = new URL(location);
+    v === 'annual' ? url.searchParams.set('view', 'annual') : url.searchParams.delete('view');
+    history.replaceState(null, '', url);
+    if (v === 'annual') loadAnnual();
+}
+document.querySelectorAll('.toggle button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+
+// ------------------------------ [Annual stacked bars] ------------------------------
+// Fixed categorical order: the 7 biggest categories (all-years total) get a hue,
+// every other category is drawn in neutral gray but still named in its tooltip.
+const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6'];
+const OTHER = '#b8bcc2';
+const MAX_VISIBLE_BARS = 10;
+let annualChart = null, annualData = null;
+
+async function loadAnnual() {
+    if (!annualData) {
+        try {
+            const res = await fetch(API + '/annual');
+            if (!res.ok) throw new Error(res.status);
+            annualData = await res.json();
+        } catch (err) {
+            setStatus('Could not load annual data: ' + err.message, true);
+            return;
+        }
+    }
+    drawAnnual();
+}
+
+// Year totals drawn on top of each bar
+const capLabels = {
+    id: 'capLabels',
+    afterDatasetsDraw(chart, _args, opts) {
+        const { ctx } = chart;
+        const totals = opts.totals || [];
+        const pos = opts.positives || [];
+        ctx.save();
+        ctx.font = '600 12px Inter, sans-serif';
+        ctx.fillStyle = '#2f3640';
+        ctx.textAlign = 'center';
+        chart.data.labels.forEach((_, i) => {
+            const el = chart.getDatasetMeta(0).data[i];
+            if (!el || !totals[i]) return;
+            const y = chart.scales.y.getPixelForValue(Math.max(pos[i] || 0, 0));
+            ctx.fillText(fmt(totals[i]), el.x, y - 6);
+        });
+        ctx.restore();
+    }
+};
+
+function drawAnnual() {
+    const { years, categories } = annualData;
+    document.getElementById('annualEmpty').hidden = years.length > 0;
+    document.getElementById('chartScroll').hidden = years.length === 0;
+    if (!years.length) return;
+
+    const colorOf = {};
+    categories.forEach((c, i) => colorOf[c.category] = i < PALETTE.length ? PALETTE[i] : OTHER);
+
+    // Each dataset is a stack *position*, not a category, so every bar can put its own
+    // biggest category furthest from zero (top for positives, bottom for negatives).
+    // Position 0 = closest to the zero line = smallest absolute value.
+    const perYear = years.map(y => categories
+        .filter(c => c.totals[y])
+        .map(c => ({ name: c.category, value: c.totals[y] }))
+        .sort((a, b) => Math.abs(a.value) - Math.abs(b.value)));
+    const depth = Math.max(...perYear.map(s => s.length));
+    const datasets = [];
+    for (let d = 0; d < depth; d++) {
+        datasets.push({
+            data: perYear.map(s => s[d] ? s[d].value : 0),
+            names: perYear.map(s => s[d] ? s[d].name : ''),
+            backgroundColor: perYear.map(s => s[d] ? colorOf[s[d].name] : 'transparent'),
+            borderColor: '#ffffff',
+            borderWidth: { top: 2 },
+            borderSkipped: 'bottom',
+            borderRadius: 0,
+            barPercentage: 0.7,
+            categoryPercentage: 0.9,
+        });
+    }
+    const yearTotals = perYear.map(s => s.reduce((a, b) => a + b.value, 0));
+    const yearPositives = perYear.map(s => s.reduce((a, b) => a + Math.max(b.value, 0), 0));
+
+    // Width: at most 10 bars fit the visible area; more bars scroll horizontally
+    const box = document.getElementById('chartBox');
+    const visible = document.getElementById('chartScroll').clientWidth;
+    box.style.width = Math.max(visible, Math.ceil(years.length * visible / MAX_VISIBLE_BARS)) + 'px';
+
+    // Legend
+    const legend = document.getElementById('annualLegend');
+    legend.innerHTML = '';
+    categories.slice(0, PALETTE.length).forEach(c => {
+        const s = document.createElement('span');
+        s.innerHTML = `<i style="background:${colorOf[c.category]}"></i>`;
+        s.append(c.category);
+        legend.appendChild(s);
+    });
+    if (categories.length > PALETTE.length) {
+        legend.insertAdjacentHTML('beforeend', `<span><i style="background:${OTHER}"></i>Other (${categories.length - PALETTE.length}) — hover for name</span>`);
+    }
+
+    if (annualChart) annualChart.destroy();
+    annualChart = new Chart(document.getElementById('annualChart'), {
+        type: 'bar',
+        data: { labels: years.map(String), datasets },
+        plugins: [capLabels],
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            layout: { padding: { top: 24 } },
+            interaction: { mode: 'nearest', intersect: true },
+            plugins: {
+                legend: { display: false },
+                capLabels: { totals: yearTotals, positives: yearPositives },
+                tooltip: {
+                    filter: item => item.raw !== 0,
+                    callbacks: {
+                        title: items => items[0].label,
+                        label: item => `${item.dataset.names[item.dataIndex]}: ${fmt(item.raw)} Ft`,
+                        footer: items => `Year ${ALLOW_NEG ? 'net' : 'total'}: ${fmt(yearTotals[items[0].dataIndex])} Ft`,
+                    }
+                }
+            },
+            scales: {
+                x: { stacked: true, grid: { display: false } },
+                y: {
+                    stacked: true, beginAtZero: true,
+                    grid: { color: '#ecf0f1' }, border: { display: false },
+                    ticks: { callback: v => Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString('hu-HU') + 'M' : fmt(v) }
+                }
+            }
+        }
+    });
+    resizeChartScrollbar();
+}
+
+window.addEventListener('resize', () => { if (VIEW === 'annual' && annualData) drawAnnual(); });
+
+refresh();
+setView(VIEW);
+</script>
+</body>
+</html>

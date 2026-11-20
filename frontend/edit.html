@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit Expense Record</title>
+  <style>
+    /* --- Styles aligned with Finance Application --- */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f5f6fa; padding: 2em; color: #2f3640; }
+    
+    .container { max-width: 800px; margin: 0 auto; }
+    
+    header { 
+        background: #832414; color: white; padding: 1.5rem; 
+        border-radius: 12px; margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        display: flex; align-items: center; gap: 12px;
+    }
+    header h1 { font-size: 1.2rem; margin: 0; }
+
+    .card { 
+        background: white; padding: 2rem; border-radius: 12px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        border-left: 5px solid #832414;
+    }
+
+    /* --- Form Styling --- */
+    .form-group { margin-bottom: 1.5rem; }
+    label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #7f8c8d; }
+    
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 1.5rem; }
+    
+    input, select { 
+        width: 100%; padding: 10px 15px; border: 1px solid #dcdde1; 
+        border-radius: 8px; font-size: 0.95rem; transition: 0.2s;
+    }
+    
+    input:focus, select:focus { 
+        outline: none; border-color: #40739e; 
+        box-shadow: 0 0 0 3px rgba(64, 115, 158, 0.1); 
+    }
+
+    .actions { display: flex; gap: 12px; align-items: center; margin-top: 2rem; }
+
+    .btn { 
+        padding: 10px 25px; border-radius: 8px; border: none; 
+        cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s; 
+    }
+    .btn-save { background: #40739e; color: white; }
+    .btn-save:hover { background: #345f83; transform: translateY(-1px); }
+    
+    .btn-cancel { 
+        background: #f1f2f6; color: #7f8c8d; text-decoration: none; 
+        display: inline-block; text-align: center; padding: 10px 25px;
+        border-radius: 8px;
+    }
+    .btn-cancel:hover { background: #e1e2e6; color: #2f3640; }
+
+    @media (max-width: 600px) {
+        .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>✏️ Edit Expense Record</h1>
+    </header>
+
+    <div class="card">
+        <form method="POST" action="/expense/edit/{{ expense.id }}?month={{ month }}&year={{ year }}">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" name="date" id="edit-date" value="{{ expense.date }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" name="description" value="{{ expense.description }}" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" step="0.01" name="amount" value="{{ expense.amount }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Currency</label>
+                    <select name="currency">
+                        <option value="HUF" {% if expense.currency == 'HUF' %}selected{% endif %}>HUF</option>
+                        <option value="EUR" {% if expense.currency == 'EUR' %}selected{% endif %}>EUR</option>
+                        <option value="USD" {% if expense.currency == 'USD' %}selected{% endif %}>USD</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" id="edit-category" required></select>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-save">Update Entry</button>
+                <a href="/expenses?month={{ month }}&year={{ year }}" class="btn btn-cancel">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const editDateInput = document.getElementById("edit-date");
+    const editCategorySelect = document.getElementById("edit-category");
+    const currentCategory = "{{ expense.category }}";
+
+    async function loadCategoriesForEdit(dateStr) {
+        const month = dateStr.slice(0, 7);
+        const res = await fetch(`/api/categories/${month}`);
+        const data = await res.json();
+
+        editCategorySelect.innerHTML = "";
+        if (!data.has_targets) {
+            editCategorySelect.disabled = true;
+            editCategorySelect.innerHTML = "<option>No targets found</option>";
+            return;
+        }
+
+        editCategorySelect.disabled = false;
+        data.categories.forEach(cat => {
+            const opt = document.createElement("option");
+            opt.value = cat;
+            opt.textContent = cat;
+            if (cat === currentCategory) opt.selected = true;
+            editCategorySelect.appendChild(opt);
+        });
+    }
+
+    editDateInput.addEventListener("change", () => loadCategoriesForEdit(editDateInput.value));
+    document.addEventListener("DOMContentLoaded", () => {
+        if (editDateInput.value) loadCategoriesForEdit(editDateInput.value);
+    });
+</script>
+
+</body>
+</html>

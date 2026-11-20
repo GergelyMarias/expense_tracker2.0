@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Register Money</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f5f6fa; padding: 2em; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 1000px; margin: auto; }
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; }
+        .control-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #7f8c8d; font-size: 0.8rem; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th { background: #40739e; color: white; padding: 12px; font-size: 0.8rem; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
+        .btn-add { background: #44bd32; color: white; margin-bottom: 1rem; }
+        .btn-save { background: #2f3640; color: white; width: 100%; margin-top: 2rem; }
+        .btn-del { background: #e84118; color: white; padding: 5px 10px; }
+        .forint-cell { font-weight: bold; text-align: right; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1>Manage Entries</h1>
+        <a href="{{ url_for('money.money_summary') }}">← Back</a>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Selected Date</label>
+            <input type="date" id="dateSelector">
+        </div>
+        <div class="control-group">
+            <label>EUR/HUF</label>
+            <input type="number" id="eurRate" value="400">
+        </div>
+        <div class="control-group">
+            <label>USD/HUF</label>
+            <input type="number" id="usdRate" value="330">
+        </div>
+    </div>
+
+    <div style="margin-bottom: 1rem; display: flex; gap: 10px;">
+        <button class="btn btn-add" onclick="addNewRow()">＋ Add New Platform</button>
+        <button id="copyBtn" class="btn" style="background: #f1c40f; color: #2c3e50;" onclick="copyFromPrevious()" disabled>
+            📋 Copy from Previous
+        </button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Platform</th>
+                <th>Amount</th>
+                <th>Currency</th>
+                <th>Liquid</th>
+                <th>HUF Value</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="logTableBody"></tbody>
+    </table>
+    <button class="btn btn-save" onclick="saveToDatabase()">💾 SAVE ALL CHANGES</button>
+</div>
+
+<script>
+    const tableBody = document.getElementById('logTableBody');
+    const dateInput = document.getElementById('dateSelector');
+    const eurInput = document.getElementById('eurRate');
+    const usdInput = document.getElementById('usdRate');
+    const copyBtn = document.getElementById('copyBtn');
+
+    // 1. Initialize Page
+    // Set default date to Today if not already set
+    if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    // 2. Event Listeners
+    dateInput.addEventListener('input', fetchEntries);
+    [eurInput, usdInput].forEach(inp => inp.addEventListener('input', updateAllRows));
+
+    /**
+     * Fetches entries for the selected date and manages the "Copy" button state
+     */
+    async function fetchEntries() {
+        let selectedDate = dateInput.value;
+        if (!selectedDate) return;
+
+        // Standardize format for the API request
+        selectedDate = selectedDate.replace(/\./g, '-');
+
+        try {
+            const response = await fetch(`/api/money-logs/${selectedDate}`);
+            const data = await response.json();
+            
+            tableBody.innerHTML = '';
+
+            if (data && data.length > 0) {
+                // If data exists, populate table and disable Copy button
+                eurInput.value = data[0].eur_rate;
+                usdInput.value = data[0].usd_rate;
+                data.forEach(row => addNewRow(row));
+                
+                toggleCopyButton(false);
+            } else {
+                // If date is empty, enable Copy button
+                toggleCopyButton(true);
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red">Error loading data</td></tr>';
+        }
+    }
+
+    /**
+     * Logic to clone the structure of the most recent entries in the DB
+     */
+    async function copyFromPrevious() {
+        try {
+            const response = await fetch('/api/money-logs/latest');
+            const data = await response.json();
+
+            if (!data || data.length === 0) {
+                alert("No previous logs found to copy from!");
+                return;
+            }
+
+            // Populate the UI with previous platforms but reset amounts to 0
+            data.forEach(row => {
+                addNewRow({
+                    platform: row.platform,
+                    amount: 0, 
+                    currency: row.currency,
+                    liquid: row.liquid
+                });
+            });
+
+            // Bring over the rates used in that previous log as well
+            eurInput.value = data[0].eur_rate;
+            usdInput.value = data[0].usd_rate;
+            
+            // Disable button after use to prevent double-pasting
+            toggleCopyButton(false);
+            
+        } catch (err) {
+            console.error("Copy error:", err);
+            alert("Error copying data from previous entry.");
+        }
+    }
+
+    /**
+     * Adds a row to the table and triggers calculation
+     */
+    function addNewRow(data = {}) {
+        const tr = document.createElement('tr');
+        // Handle both numeric 0/1 and boolean for liquid checkbox
+        const isLiquid = data.liquid == 1 || data.liquid === true;
+        
+        tr.innerHTML = `
+            <td><input type="text" class="plat" value="${data.platform || ''}" placeholder="Platform name"></td>
+            <td><input type="number" class="amt" value="${data.amount || 0}" oninput="calcRow(this)"></td>
+            <td>
+                <select class="curr" onchange="calcRow(this)">
+                    <option value="HUF" ${data.currency=='HUF'?'selected':''}>HUF</option>
+                    <option value="EUR" ${data.currency=='EUR'?'selected':''}>EUR</option>
+                    <option value="USD" ${data.currency=='USD'?'selected':''}>USD</option>
+                </select>
+            </td>
+            <td style="text-align:center"><input type="checkbox" class="liq" ${isLiquid ? 'checked' : ''}></td>
+            <td class="forint-cell">0 Ft</td>
+            <td><button class="btn btn-del" onclick="this.closest('tr').remove(); checkEmptyState();">✕</button></td>
+        `;
+        tableBody.appendChild(tr);
+        calcRow(tr.querySelector('.amt'));
+    }
+
+    /**
+     * Calculates the HUF value for a single row based on current rates
+     */
+    function calcRow(el) {
+        const row = el.closest('tr');
+        const amt = parseFloat(row.querySelector('.amt').value) || 0;
+        const cur = row.querySelector('.curr').value;
+        const eur = parseFloat(eurInput.value) || 1;
+        const usd = parseFloat(usdInput.value) || 1;
+
+        let res = amt;
+        if(cur === 'EUR') res = amt * eur;
+        if(cur === 'USD') res = amt * usd;
+
+        row.querySelector('.forint-cell').innerText = Math.round(res).toLocaleString('hu-HU') + ' Ft';
+    }
+
+    function updateAllRows() { 
+        document.querySelectorAll('.amt').forEach(el => calcRow(el)); 
+    }
+
+    /**
+     * Sends current table state to the server
+     */
+    async function saveToDatabase() {
+        const rows = Array.from(document.querySelectorAll('#logTableBody tr')).map(tr => ({
+            platform: tr.querySelector('.plat').value,
+            amount: tr.querySelector('.amt').value,
+            currency: tr.querySelector('.curr').value,
+            liquid: tr.querySelector('.liq').checked ? 1 : 0
+        }));
+
+        if (rows.length === 0) {
+            if (!confirm("Table is empty. Saving will delete all entries for this date. Continue?")) return;
+        }
+
+        const response = await fetch('/api/money-logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                date: dateInput.value, 
+                eur_rate: eurInput.value, 
+                usd_rate: usdInput.value, 
+                rows 
+            })
+        });
+
+        if (response.ok) {
+            alert('Data saved successfully!');
+            fetchEntries(); // Refresh to ensure button states and UI are synced
+        } else {
+            alert('Failed to save data. Check server logs.');
+        }
+    }
+
+    /**
+     * UI Helper to handle the Copy button appearance
+     */
+    function toggleCopyButton(enabled) {
+        if (!copyBtn) return;
+        copyBtn.disabled = !enabled;
+        copyBtn.style.opacity = enabled ? "1" : "0.5";
+        copyBtn.style.cursor = enabled ? "pointer" : "not-allowed";
+    }
+
+    /**
+     * Simple check if table was manually cleared
+     */
+    function checkEmptyState() {
+        if (tableBody.children.length === 0) {
+            toggleCopyButton(true);
+        }
+    }
+
+    // Run initial fetch on page load
+    fetchEntries();
+</script>
+</body>
+</html>

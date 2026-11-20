@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Finance Application | Database Management</title>
+    <style>
+        /* --- Styles aligned with Main Dashboard --- */
+        body { font-family: 'Inter', sans-serif; background: #f5f6fa; padding: 1em 2em; color: #2f3640; }
+        
+        header { 
+            background: #40739e; color: white; padding: 1rem 2rem; 
+            border-radius: 12px; display: flex; justify-content: space-between; 
+            align-items: center; max-width: 1200px; margin: 0 auto 1.5rem auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        header h1 { font-size: 1.2rem; margin: 0; }
+        header nav a { color: white; text-decoration: none; font-weight: bold; margin-left: 20px; font-size: 0.9rem; }
+        header nav a:hover { text-decoration: underline; }
+
+        .container { max-width: 800px; margin: auto; }
+        
+        .card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+        
+        h2 { font-size: 1.1rem; color: #2f3640; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px; }
+
+        /* --- Buttons & UI Elements --- */
+        .btn { padding: 10px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: 0.2s; display: inline-block; text-decoration: none; text-align: center; }
+        .btn-blue { background: #3498db; color: white; }
+        .btn-orange { background: #e67e22; color: white; }
+        .btn-dark { background: #2f3640; color: white; }
+        .btn:hover { opacity: 0.9; }
+
+        .status-box { 
+            background: #e1f5fe; padding: 15px; border-radius: 8px; 
+            margin-bottom: 20px; border-left: 5px solid #03a9f4; 
+        }
+        .status-box h3 { margin: 0 0 10px 0; font-size: 1rem; color: #01579b; }
+        .status-box ul { font-size: 0.85rem; padding-left: 20px; margin: 0; }
+
+        .action-section { 
+            padding: 20px; border: 1px dashed #dcdde1; 
+            border-radius: 8px; margin-bottom: 1rem; 
+        }
+        .section-title { margin-top: 0; font-weight: bold; display: block; margin-bottom: 10px; }
+
+        /* --- Table Styles --- */
+        table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
+        th { background: #2f3640; color: white; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #f1f1f1; vertical-align: middle; }
+        .table-scroll { max-height: 400px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; margin-top: 15px; }
+
+        input[type="file"] { font-size: 0.8rem; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Database</h1>
+    <nav>
+        <a href="/">🏠 Dashboard</a>
+        <a href="/money">💰 Money</a>
+        <a href="/targets">🎯 Monthly Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/database"> ⚙️ Database</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h2>⚙️ Database Management</h2>
+
+        {% if last_status %}
+        <div class="status-box">
+            <h3>Process Report:</h3>
+            <ul>
+                {% for s in last_status %}
+                    <li><strong>{{ s.table }}</strong>: {{ s.status }} ({{ s.rows }} rows)</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="actions">
+            <div class="action-section" style="border-color: #3498db; background: #f0f7ff;">
+                <span class="section-title" style="color: #3498db;">1. Export to Local PC</span>
+                <p style="font-size: 0.8rem; color: #57606f;">Generate a .pkl file containing all your data and download it immediately.</p>
+                <a href="/db/download-backup" class="btn btn-blue" style="width: 100%; box-sizing: border-box;">Download Backup File</a>
+            </div>
+
+            <div class="action-section" style="border-color: #e67e22; background: #fffaf5;">
+                <span class="section-title" style="color: #e67e22;">2. Import from Local PC</span>
+                <p style="font-size: 0.8rem; color: #57606f;">Upload a previously saved .pkl file to restore your data. <strong>Warning: Overwrites current DB!</strong></p>
+                <form action="/db/upload-restore" method="POST" enctype="multipart/form-data">
+                    <input type="file" name="backup_file" accept=".pkl" required style="width: 100%;">
+                    <button type="submit" class="btn btn-orange" style="width: 100%;" 
+                            onclick="return confirm('This will completely replace all current database entries with the file you selected. Are you sure?')">
+                        Upload & Restore Database
+                    </button>
+                </form>
+            </div>
+
+            <div class="action-section">
+                <span class="section-title">Database Inspection</span>
+                <form action="/database" method="GET">
+                    <input type="hidden" name="show_info" value="1">
+                    <button type="submit" class="btn btn-dark" style="width: 100%;">Show Detailed Table Stats</button>
+                </form>
+
+                {% if info %}
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Table</th>
+                                <th style="text-align:center;">Rows</th>
+                                <th>Columns</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in info %}
+                            <tr>
+                                <td style="font-weight:bold;">{{ t.name }}</td>
+                                <td style="text-align:center;">{{ t.rows }}</td>
+                                <td style="font-size: 0.75rem; color: #7f8c8d; line-height: 1.4;">{{ t.cols }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 1.5rem;">
+            <a href="/" style="font-size: 0.85rem; color: #7f8c8d; text-decoration: none;">← Return to Main Dashboard</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

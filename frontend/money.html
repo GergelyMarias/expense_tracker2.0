@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Money Log Summary</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f6fa; padding: 2em; color: #2f3640; }
+        .container { max-width: 1400px; margin: auto; }
+        header { 
+            background: #40739e; color: white; padding: 1rem 2rem; 
+            border-radius: 12px; display: flex; justify-content: space-between; 
+            align-items: center; max-width: 1200px; margin: 0 auto 1.5rem auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        header h1 { font-size: 1.2rem; margin: 0; }
+        header nav a { color: white; text-decoration: none; font-weight: bold; margin-left: 20px; font-size: 0.9rem; }
+        .btn-group { display: flex; gap: 0.5em; margin-bottom: 2rem; }
+        .money-log-btn { padding: 0.6em 1.2em; background: #44bd32; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; transition: opacity 0.2s; }
+        .money-log-btn:hover { opacity: 0.9; }
+        
+        /* ------------------------------ [Full-Width Stacked Layout] ------------------------------ */
+        .chart-stack { display: flex; flex-direction: column; gap: 2rem; margin-bottom: 2rem; width: 100%; }
+        .chart-card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: 450px; width: 100%; box-sizing: border-box; }
+        
+        .table-container { background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 12px 8px; text-align: right; border-bottom: 1px solid #dcdde1; white-space: nowrap; }
+        th { background: #40739e; color: white; text-align: center; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        td:first-child, th:first-child { text-align: left; }
+        tbody tr:nth-child(even) { background: #f8f9fa; }
+        tbody tr:hover { background: #f1f2f6; }
+        .perc { color: #7f8c8d; font-size: 0.85em; }
+        .rate { color: #2980b9; font-weight: bold; font-size: 0.85em;}
+        .wealth-huf { font-weight: bold; color: #2c3e50; }
+        .curr { font-size: 0.8em; color: #95a5a6; margin-left: 2px; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Money</h1>
+    <nav>
+        <a href="/">🏠 Dashboard</a>
+        <a href="/money">💰 Money</a>
+        <a href="/targets">🎯 Monthly Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/database"> ⚙️ Database</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
+<div class="container">
+
+    <!-- ------------------------------ [Visual Dashboard Panels] ------------------------------ -->
+    <div class="chart-stack">
+        <div class="chart-card">
+            <canvas id="wealthCurveChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <canvas id="netIncomeChart"></canvas>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <a href="{{ url_for('money.register_money') }}" class="money-log-btn register-btn">💰 Create a Money</a>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Total Wealth (HUF)</th>
+                    <th>Total Wealth (EUR)</th>
+                    <th>Liquid (HUF)</th>
+                    <th>Sum HUF</th>
+                    <th>Sum EUR</th>
+                    <th>Sum USD</th>
+                    <th>% HUF</th>
+                    <th>% EUR</th>
+                    <th>% USD</th>
+                    <th>EUR/HUF</th>
+                    <th>USD/HUF</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in summary %}
+                <tr>
+                    <td class="row-date">{{ row.date }}</td>
+                    <td class="wealth-huf wealth-val" data-raw="{{ row.total_wealth_huf }}">
+                        {{ "{:,.0f}".format(row.total_wealth_huf) }}<span class="curr">Ft</span>
+                    </td>
+                    <td>{{ "{:,.2f}".format(row.total_wealth_eur) }}<span class="curr">€</span></td>
+                    <td>{{ "{:,.0f}".format(row.total_liquid_huf) }}<span class="curr">Ft</span></td>
+                    <td>{{ "{:,.0f}".format(row.sum_huf) }}<span class="curr">Ft</span></td>
+                    <td>{{ "{:,.2f}".format(row.sum_eur) }}<span class="curr">€</span></td>
+                    <td>{{ "{:,.2f}".format(row.sum_usd) }}<span class="curr">$</span></td>
+                    <td class="perc">{{ "%.1f"|format(row.p_huf) }}%</td>
+                    <td class="perc">{{ "%.1f"|format(row.p_eur) }}%</td>
+                    <td class="perc">{{ "%.1f"|format(row.p_usd) }}%</td>
+                    <td class="rate">{{ "%.2f"|format(row.eur_rate) }}<span class="curr">Ft</span></td>
+                    <td class="rate">{{ "%.2f"|format(row.usd_rate) }}<span class="curr">Ft</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="12" style="text-align: center; padding: 2em;">No logs found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // ------------------------------ [Configuration Parsing] ------------------------------
+    const curveLabels = {{ curve_labels | tojson }};
+    const actualWealth = {{ actual_wealth | tojson }};
+    const projectedWealth = {{ projected_wealth | tojson }};
+
+    const barLabels = {{ chart_labels | tojson }};
+    const barValues = {{ chart_values | tojson }};
+
+    // Shared layout format utilities for currency visualization context
+    const hufFormatter = (v) => (v / 1000000).toFixed(1) + 'M Ft';
+    const tooltipFormatter = (context) => {
+        let val = context.raw;
+        if (val === null || val === undefined) return '';
+        return context.dataset.label + ': ' + new Intl.NumberFormat('hu-HU').format(val) + ' Ft';
+    };
+
+    // ------------------------------ [Plot 1: Historical & Projected Curve] ------------------------------
+    const ctxCurve = document.getElementById('wealthCurveChart').getContext('2d');
+    new Chart(ctxCurve, {
+        type: 'line',
+        data: {
+            labels: curveLabels,
+            datasets: [
+                {
+                    label: 'Actual Wealth',
+                    data: actualWealth,
+                    borderColor: '#2980b9',
+                    backgroundColor: 'rgba(41, 128, 185, 0.1)',
+                    fill: true,
+                    tension: 0.15,
+                    borderWidth: 3,
+                    pointRadius: 4
+                },
+                {
+                    label: 'Projected Wealth',
+                    data: projectedWealth,
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.05)',
+                    fill: true,
+                    tension: 0.15,
+                    borderWidth: 3,
+                    borderDash: [6, 6],
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: 'Wealth Curve', font: { size: 14, weight: 'bold' } },
+                legend: { position: 'bottom', labels: { boxWidth: 20 } },
+                tooltip: { callbacks: { label: tooltipFormatter } }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: false, ticks: { callback: hufFormatter } }
+            }
+        }
+    });
+
+    // ------------------------------ [Plot 2: Net Monthly Performance Bar] ------------------------------
+    const backgroundColors = barValues.map(val => val >= 0 ? 'rgba(52, 152, 219, 0.85)' : 'rgba(231, 76, 60, 0.85)');
+    const borderColors = barValues.map(val => val >= 0 ? 'rgba(52, 152, 219, 1)' : 'rgba(231, 76, 60, 1)');
+
+    const ctxBar = document.getElementById('netIncomeChart').getContext('2d');
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: barLabels,
+            datasets: [{
+                label: 'Net Monthly Performance',
+                data: barValues,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: 'Net Monthly Changes (Income - Expenses)', font: { size: 14, weight: 'bold' } },
+                legend: { display: false },
+                tooltip: { callbacks: { label: tooltipFormatter } }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, ticks: { callback: hufFormatter } }
+            }
+        }
+    });
+
+    document.querySelectorAll('.row-date').forEach(td => {
+        if(td.innerText.length > 10) td.innerText = td.innerText.substring(0,10);
+    });
+</script>
+</body>
+</html>

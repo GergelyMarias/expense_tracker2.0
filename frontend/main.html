@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Expense Tracker | Dashboard</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f5f6fa; padding: 1em 2em; color: #2f3640; }
+        header { 
+            background: #40739e; color: white; padding: 1rem 2rem; 
+            border-radius: 12px; display: flex; justify-content: space-between; 
+            align-items: center; max-width: 1200px; margin: 0 auto 1.5rem auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        header h1 { font-size: 1.2rem; margin: 0; }
+        header nav a { color: white; text-decoration: none; font-weight: bold; margin-left: 20px; font-size: 0.9rem; }
+        
+        .main-container { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 1.5rem; 
+            max-width: 1200px; 
+            margin: auto; 
+            align-items: stretch;
+        }
+
+        .card { 
+            background: white; padding: 1.5rem; border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            display: flex; flex-direction: column; height: 100%; box-sizing: border-box; 
+        }
+        
+        /* ------------------------------ Month selector ------------------------------ */
+        .month-nav {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            width: fit-content; margin: 0 auto 1.5rem auto; padding: 6px;
+            background: white; border-radius: 999px; box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+        }
+        .month-step {
+            width: 36px; height: 36px; border: none; border-radius: 50%;
+            background: #f1f2f6; color: #40739e; font-size: 1.4rem; line-height: 1; cursor: pointer; transition: 0.2s;
+        }
+        .month-step:hover { background: #40739e; color: white; }
+        .month-label {
+            position: relative; min-width: 190px; text-align: center; cursor: pointer;
+            font-weight: 700; font-size: 1.05rem; color: #2f3640; padding: 6px 14px; border-radius: 999px; transition: 0.2s;
+        }
+        .month-label:hover { background: #f5f6fa; }
+        /* Native picker sits invisibly over the label: clicking the label opens it */
+        .month-label input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; padding: 0; border: none; }
+        .card.wide { grid-column: 1 / -1; height: auto; }
+        .card.wide .form-row { grid-template-columns: 1fr 2fr 1fr 0.7fr 1.3fr 1fr; margin-bottom: 0; }
+        @media (max-width: 900px) { .card.wide .form-row { grid-template-columns: 1fr 1fr; } }
+        
+        h2 { font-size: 1.1rem; color: #2f3640; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 10px; }
+        input, select { width: 100%; padding: 8px 12px; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
+        
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: 0.2s; }
+        .btn-add { background: #44bd32; color: white; width: 100%; }
+        .btn-add-e { background: #e84118; color: white; width: 100%; }
+        
+        /* Updated Delete Button Style */
+        .btn-del { background: transparent; color: #7f8c8d; border: none; padding: 4px 8px; cursor: pointer; border-radius: 4px; font-size: 1rem; transition: 0.2s; }
+        .btn-del:hover { color: #e84118; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.82rem; }
+        th { background: #f8f9fa; color: #7f8c8d; padding: 8px; text-align: left; border-bottom: 2px solid #eee; font-weight: 600; }
+        td { padding: 8px; border-bottom: 1px solid #f1f1f1; vertical-align: middle; }
+        
+        /* ------------------------------ Table Scrolling Logic ------------------------------ */
+        .table-scroll-dynamic { 
+            flex: 1 1 0; 
+            overflow-y: auto; 
+            border: 1px solid #eee; 
+            border-radius: 8px; 
+            min-height: 400px; 
+        }
+        .table-full-height { 
+            flex-shrink: 0; 
+            border: 1px solid #eee; 
+            border-radius: 8px; 
+            overflow: hidden; 
+        }
+        
+        /* ------------------------------ Number Formatting ------------------------------ */
+        .summary-table td { text-align: right; font-family: 'Courier New', monospace; }
+        .amount-cell { font-family: 'Courier New', monospace; font-weight: bold; text-align: right; }
+        
+        .summary-table th { background: #40739e; color: white; text-align: center; }
+        
+        /* ------------------------------ Color Logic ------------------------------ */
+        .summary-remaining { color: #44bd32; font-weight: bold; }
+        .summary-spent { color: #e84118; }
+        .summary-target { color: #40739e; font-weight: bold; }
+        
+        /* Applied to specific cells for flows and balances */
+        .flow-positive { color: #44bd32; font-weight: bold; }
+        .flow-negative { color: #e84118; font-weight: bold; }
+        
+        .total-row { background: #f1f2f6; font-weight: bold; }
+        .negative-balance { background-color: #fff5f4 !important; color: darkred !important; }
+        
+        /* ------------------------------ Left Side Borders ------------------------------ */
+        .border-red { border-left: 5px solid #832414; }
+        .border-green { border-left: 5px solid #44bd32; }
+        .border-blue { border-left: 5px solid #4161ca; }
+
+        @media (max-width: 900px) { 
+            body { padding: 0.5em; }
+            .main-container { grid-template-columns: 1fr; gap: 1rem; }
+            .card { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Finance Application</h1>
+    <nav>
+        <a href="/">🏠 Dashboard</a>
+        <a href="/money">💰 Money</a>
+        <a href="/targets">🎯 Monthly Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/database"> ⚙️ Database</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
+
+<div class="month-nav">
+    <button type="button" class="month-step" data-step="-1" aria-label="Previous month">‹</button>
+    <label class="month-label" title="Pick a month">
+        <span id="month-text"></span>
+        <input type="month" id="master-month" value="{{ exp_month }}">
+    </label>
+    <button type="button" class="month-step" data-step="1" aria-label="Next month">›</button>
+</div>
+
+{% macro huf(value) %}
+  {{ "{:,.0f}".format(value).replace(",", " ") }} Ft
+{% endmacro %}
+
+<div class="main-container">
+    
+    <div class="card border-red wide">
+        <h2>➕ Record Expense</h2>
+        <form method="POST">
+            <input type="hidden" name="form_type" value="expense">
+            <div class="form-row">
+                <input type="date" name="date" id="expense-date" value="{{ today }}" required>
+                <input type="text" name="description" placeholder="Description" required>
+                <input type="number" name="amount" step="0.01" placeholder="Amount" required>
+                <select name="currency"><option value="HUF">HUF</option><option value="EUR">EUR</option><option value="USD">USD</option></select>
+                <select name="category" id="category-select"></select>
+                <button type="submit" class="btn btn-add-e">Add Expense</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card border-red">
+        <h2>📑 Recorded Expenses</h2>
+        <div class="table-scroll-dynamic">
+            <table>
+                <thead>
+                    <tr style="position: sticky; top: 0; background: #f8f9fa; z-index: 1;"><th>Date</th><th>Description</th><th>Amount</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    {% for e in expenses %}
+                    <tr>
+                        <td>{{ e.date }}</td>
+                        <td>{{ e.description }}<br><small style="background:#eee; padding:1px 4px; border-radius:3px;">{{ e.category }}</small></td>
+                        <td class="amount-cell">{{ huf(e.forint) }}</td>
+                        <td>
+                            <div style="display: flex; gap: 8px;">
+                                <a href="/expense/edit/{{ e.id }}?month={{ exp_month }}&year={{ selected_year }}" style="text-decoration:none;">✏️</a>
+                                <form method="POST" action="/expense/delete/{{ e.id }}?month={{ exp_month }}&year={{ selected_year }}" onsubmit="return confirm('Delete?')">
+                                    <button class="btn-del">🗑️</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card border-green">
+        <h2>📊 Monthly Targets</h2>
+        <div class="table-full-height">
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; background: #2f3640;">CATEGORY</th>
+                        <th style="background: #27ae60;">REMAINING</th>
+                        <th style="background: #c0392b;">SPENT</th>
+                        <th style="background: #2980b9;">TARGET</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="total-row">
+                        <td class="{{ 'negative-balance' if summary.total.remaining < 0 }}">TOTAL</td>
+                        <td class="summary-remaining {{ 'negative-balance' if summary.total.remaining < 0 }}">{{ huf(summary.total.remaining) }}</td>
+                        <td class="summary-spent">{{ huf(summary.total.spent) }}</td>
+                        <td class="summary-target">{{ huf(summary.total.target) }}</td>
+                    </tr>
+                    {% for r in summary.rows %}
+                    <tr>
+                        <td class="{{ 'negative-balance' if r.remaining < 0 }}">{{ r.category }}</td>
+                        <td class="summary-remaining {{ 'negative-balance' if r.remaining < 0 }}">{{ huf(r.remaining) }}</td>
+                        <td class="summary-spent">{{ huf(r.spent) }}</td>
+                        <td class="summary-target">{{ huf(r.target) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const dateInput = document.getElementById("expense-date");
+    const categorySelect = document.getElementById("category-select");
+
+    async function loadCategories(month, targetElement) {
+        if (!targetElement) return;
+        try {
+            const res = await fetch(`/api/categories/${month}`);
+            const data = await res.json();
+            targetElement.innerHTML = "";
+            if (data.has_targets) {
+                data.categories.forEach(cat => {
+                    const opt = document.createElement("option");
+                    opt.value = cat; opt.textContent = cat;
+                    targetElement.appendChild(opt);
+                });
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadCategories(dateInput.value.slice(0, 7), categorySelect);
+        dateInput.addEventListener("change", () => loadCategories(dateInput.value.slice(0, 7), categorySelect));
+        
+        // Month selector
+        const monthInput = document.getElementById("master-month");
+        const goTo = ym => { location.href = '?month=' + ym + '&year=' + ym.split('-')[0]; };
+        const [y, m] = monthInput.value.split('-').map(Number);
+        const label = new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        document.getElementById("month-text").textContent = label;
+        monthInput.addEventListener("change", () => { if (monthInput.value) goTo(monthInput.value); });
+        document.querySelectorAll(".month-step").forEach(b => b.addEventListener("click", () => {
+            const d = new Date(y, m - 1 + Number(b.dataset.step), 1);
+            goTo(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        }));
+        const label_el = document.querySelector(".month-label");
+        label_el.addEventListener("click", e => { try { monthInput.showPicker(); e.preventDefault(); } catch (_) {} });
+
+        const scrollpos = localStorage.getItem('scrollpos');
+        if (scrollpos) { window.scrollTo(0, scrollpos); localStorage.removeItem('scrollpos'); }
+    });
+    window.onbeforeunload = () => { localStorage.setItem('scrollpos', window.scrollY); };
+</script>
+</body>
+</html>
