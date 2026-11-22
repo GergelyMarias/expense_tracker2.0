@@ -1,0 +1,85 @@
+{# Shared "hide amounts" privacy mode. Include inside <head> of every page.
+   When session.hide_amounts is on, every money value is blurred:
+   - elements whose text is an amount (e.g. "1.234.567 Ft", "-608", "4.746.209")
+   - amounts inside longer text ("Spent 5.428.634 Ft of ...")
+   - amount input fields (until focused, so they can still be edited)
+   - charts (they plot amounts)
+   Percentages, counts and dates are left readable. #}
+{% if hide_amounts %}
+<style>
+    /* blur scales with the text size, so big headline numbers are just as unreadable as small ones */
+    .pv { filter: blur(max(5px, .38em)); transition: filter .2s; user-select: none; }
+    canvas { filter: blur(9px); }
+    td input[data-month], input.amt, input[name="amount"], #amount, .fx input { filter: blur(5px); transition: filter .15s; }
+    td input[data-month]:focus, input.amt:focus, input[name="amount"]:focus, #amount:focus, .fx input:focus { filter: none; }
+    .privacy-pill {
+        position: fixed; right: 16px; bottom: 16px; z-index: 50; display: inline-flex; align-items: center; gap: .4rem;
+        padding: .45rem .8rem; border-radius: 999px; font: 600 .75rem 'Inter', sans-serif; text-decoration: none;
+        background: #1f2430; color: #fff; box-shadow: 0 4px 16px rgba(20,30,50,.18); opacity: .85;
+    }
+    .privacy-pill:hover { opacity: 1; }
+    @media print { .privacy-pill { display: none; } }
+</style>
+<script>
+(() => {
+    // Whole text is one amount: optional sign, digits with dot thousands / comma decimals, optional currency.
+    const WHOLE = /^[\s+\-−]*\d[\d.\s]*(,\d+)?\s*(Ft|€|\$|HUF|EUR|USD)?\s*$/;
+    // Amounts inside longer text: thousands-grouped numbers, or any number followed by a currency.
+    const INLINE = /[+\-−]?\d{1,3}(?:\.\d{3})+(?:,\d+)?(?:\s?(?:Ft|€|\$))?|[+\-−]?\d+(?:,\d+)?\s?(?:Ft|€|\$)(?![\w%])/g;
+    const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'BUTTON', 'TITLE']);
+
+    // An element is an amount when its own text is a number that is clearly money:
+    // it has thousands dots, a currency, or a sibling "Ft" (e.g. 608<small>Ft</small>).
+    function isAmountEl(el) {
+        const t = el.textContent;
+        if (!t || t.length > 40 || t.includes('%') || !WHOLE.test(t)) return false;
+        if ([...el.children].some(c => !['SMALL', 'B', 'SPAN', 'I'].includes(c.tagName))) return false;
+        return /\d\.\d{3}/.test(t) || /(Ft|€|\$)/.test(t) || /(Ft|€|\$)/.test(el.nextElementSibling?.textContent || '');
+    }
+
+    function scan(root) {
+        if (!root || root.nodeType !== 1 || SKIP.has(root.tagName) || root.closest('.pv, .pv-skip')) return;
+        // 1) whole-element amounts
+        [root, ...root.querySelectorAll('*')].forEach(el => {
+            if (!SKIP.has(el.tagName) && !el.closest('.pv, .pv-skip') && isAmountEl(el)) el.classList.add('pv');
+        });
+        // 2) amounts embedded in text
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode: n => (n.parentElement && !SKIP.has(n.parentElement.tagName) && !n.parentElement.closest('.pv, .pv-skip') && INLINE.test(n.nodeValue))
+                ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+        });
+        const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(n => {
+            INLINE.lastIndex = 0;
+            const html = n.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+                .replace(INLINE, m => `<span class="pv">${m}</span>`);
+            const tmp = document.createElement('span'); tmp.innerHTML = html;
+            n.replaceWith(...tmp.childNodes);
+        });
+    }
+
+    let queued = new Set();
+    const flush = () => { const roots = queued; queued = new Set(); roots.forEach(r => r.isConnected && scan(r)); };
+    const observer = new MutationObserver(muts => {
+        muts.forEach(m => {
+            const target = m.type === 'characterData' ? m.target.parentElement : m.target;
+            if (target && !target.closest?.('.pv')) queued.add(target);
+        });
+        if (queued.size) requestAnimationFrame(flush);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        scan(document.body);
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        // Small reminder, also a shortcut to switch it off
+        if (!document.querySelector('.privacy-toggle-form')) {
+            const pill = document.createElement('a');
+            pill.className = 'privacy-pill pv-skip'; pill.href = '/settings';
+            pill.title = 'Amounts are hidden — change in Settings';
+            pill.textContent = '🙈 Amounts hidden';
+            document.body.appendChild(pill);
+        }
+    });
+})();
+</script>
+{% endif %}

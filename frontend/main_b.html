@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard B</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f5f7;
+            --surface: #ffffff;
+            --line: #e6e8ec;
+            --line-soft: #f0f1f4;
+            --text: #1f2430;
+            --text-2: #5b6272;
+            --muted: #9aa1ae;
+            --accent: #40739e;
+            --good: #1f8a5b;
+            --good-bg: #e9f6ef;
+            --bad: #d14343;
+            --bad-bg: #fcecec;
+            --warn: #c98500;
+            --bar: #c9d6e3;
+            --radius: 14px;
+            --shadow: 0 1px 2px rgba(20, 30, 50, .04), 0 4px 16px rgba(20, 30, 50, .05);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 1.2rem 2rem 3rem;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg); color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ------------------------------ Header ------------------------------ */
+        header {
+            max-width: 1240px; margin: 0 auto 1.4rem; padding: .8rem 1.3rem;
+            display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .brand { font-weight: 800; color: var(--text); }
+        .brand span { color: var(--muted); font-weight: 600; margin-left: .3rem; }
+        nav { display: flex; gap: .2rem; flex-wrap: wrap; }
+        nav a { color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .85rem; padding: .45rem .75rem; border-radius: 8px; transition: background .2s, color .2s; }
+        nav a:hover { background: var(--line-soft); color: var(--text); }
+        nav a.active { background: #eaf0f6; color: var(--accent); }
+
+        .wrap { max-width: 1240px; margin: 0 auto; }
+
+        .flash { margin-bottom: 1rem; padding: .85rem 1.1rem; border-radius: 10px; background: var(--bad-bg); color: #8f2a2a; border: 1px solid #f3c9c9; }
+
+        /* ------------------------------ Month selector ------------------------------ */
+        .month-nav {
+            display: flex; align-items: center; gap: 4px; width: fit-content; margin: 0 auto 1.4rem;
+            padding: 5px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
+        }
+        .month-step { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--line-soft); color: var(--text-2); font-size: 1.25rem; line-height: 1; cursor: pointer; transition: .2s; }
+        .month-step:hover { background: var(--accent); color: #fff; }
+        .month-label { position: relative; min-width: 190px; text-align: center; font-weight: 700; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+        .month-label input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+        .month-label:hover { background: var(--line-soft); }
+
+        /* ------------------------------ Cards ------------------------------ */
+        .card {
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+            padding: 1.3rem 1.4rem;
+            animation: fade .5s ease both;
+        }
+        @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+        .card h2 { margin: 0 0 1rem; font-size: .95rem; font-weight: 700; color: var(--text); display: flex; justify-content: space-between; align-items: baseline; }
+        .card h2 small { color: var(--muted); font-weight: 500; font-size: .8rem; }
+
+        /* ------------------------------ Record form ------------------------------ */
+        .record { margin-bottom: 1.2rem; padding: 1rem 1.2rem; }
+        .record form { display: grid; grid-template-columns: 1fr 2fr 1fr .7fr 1.4fr auto; gap: .6rem; }
+        input, select {
+            width: 100%; padding: .65rem .8rem; border-radius: 9px; font: inherit; font-size: .9rem;
+            background: #fafbfc; color: var(--text); border: 1px solid var(--line); transition: border-color .2s, box-shadow .2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(64,115,158,.12); background: #fff; }
+        .btn-add { border: none; border-radius: 9px; padding: .65rem 1.3rem; font: inherit; font-weight: 700; cursor: pointer; color: #fff; background: var(--accent); transition: background .2s, transform .1s; white-space: nowrap; }
+        .btn-add:hover { background: #355f84; }
+        .btn-add:active { transform: translateY(1px); }
+
+        /* ------------------------------ Layout: targets lead ------------------------------ */
+        .grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 1.2rem; align-items: start; }
+
+        /* ------------------------------ Monthly targets ------------------------------ */
+        .hero {
+            display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;
+            padding: .4rem 0 1.2rem; margin-bottom: .4rem; border-bottom: 1px solid var(--line);
+        }
+        .hero .label { font-size: .8rem; color: var(--text-2); font-weight: 600; }
+        .hero .big { font-size: 2.6rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin-top: .2rem; }
+        .hero .big small { font-size: 1.1rem; font-weight: 700; margin-left: .25rem; }
+        .hero .side { text-align: right; color: var(--text-2); font-size: .85rem; line-height: 1.6; }
+        .hero .side b { color: var(--text); }
+        .pos { color: var(--good); }
+        .neg { color: var(--bad); }
+        .zero { color: var(--muted); }
+
+        .tgt-head, .tgt {
+            display: grid; grid-template-columns: minmax(0, 1fr) 150px; column-gap: 1.2rem; align-items: center;
+        }
+        .tgt-head { padding: .6rem .4rem .4rem; font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+        .tgt-head span:last-child { text-align: right; }
+        .tgt { padding: .75rem .4rem; border-bottom: 1px solid var(--line-soft); border-radius: 8px; transition: background .15s; }
+        .tgt:last-child { border-bottom: none; }
+        .tgt:hover { background: #f8f9fb; }
+        .tgt .name { font-weight: 600; font-size: .95rem; }
+        .tgt .detail { display: flex; align-items: center; gap: .7rem; margin-top: .4rem; }
+        .tgt .of { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+        .bar { flex: 1; height: 6px; border-radius: 999px; background: var(--line-soft); overflow: hidden; max-width: 320px; }
+        .bar i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--bar); transition: width .9s cubic-bezier(.2,.7,.2,1); }
+        .tgt.over .bar i { background: #eba3a3; }
+        .remaining { text-align: right; font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; }
+        .remaining small { font-size: .75rem; font-weight: 700; margin-left: 2px; }
+        .tgt.over { background: linear-gradient(90deg, transparent, var(--bad-bg)); }
+        /* Clickable rows: select to filter the expense list */
+        .tgt { cursor: pointer; position: relative; user-select: none; }
+        .tgt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .tgt.selected { background: #eaf0f6; box-shadow: inset 3px 0 0 var(--accent); }
+        .tgt.selected .name { color: var(--accent); }
+        .filter-bar { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin: -.4rem 0 .8rem; }
+        .filter-bar[hidden] { display: none; }
+        .chip { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem; font-weight: 600; color: var(--accent); background: #eaf0f6; padding: .25rem .6rem; border-radius: 999px; margin: 0 .3rem .3rem 0; border: none; cursor: pointer; font-family: inherit; }
+        .chip:hover { background: #dbe6f0; }
+        .clear { margin-left: auto; font: inherit; font-size: .75rem; color: var(--text-2); background: none; border: none; cursor: pointer; text-decoration: underline; }
+        .exp[hidden], .empty[hidden] { display: none; }
+
+        /* ------------------------------ Recorded expenses (secondary) ------------------------------ */
+        .list { max-height: 640px; overflow-y: auto; margin: 0 -.5rem; padding: 0 .5rem; scrollbar-width: thin; scrollbar-color: #d5d8de transparent; }
+        .exp { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto auto; gap: .7rem; align-items: center; padding: .6rem .3rem; border-bottom: 1px solid var(--line-soft); }
+        .exp:last-child { border-bottom: none; }
+        .exp .day { font-size: .8rem; color: var(--muted); font-weight: 600; }
+        .exp .desc div { font-size: .88rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .exp .desc span { font-size: .72rem; color: var(--muted); }
+        .exp .amt { font-size: .88rem; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+        .exp .acts { display: flex; opacity: 0; transition: opacity .15s; }
+        .exp:hover .acts, .exp:focus-within .acts { opacity: 1; }
+        .icon-btn { background: none; border: none; cursor: pointer; padding: 4px 5px; border-radius: 6px; text-decoration: none; font-size: .85rem; line-height: 1; filter: grayscale(1); opacity: .7; }
+        .icon-btn:hover { background: var(--line-soft); filter: none; opacity: 1; }
+        .empty { color: var(--muted); padding: 1.5rem 0; text-align: center; font-size: .9rem; }
+
+        @media (max-width: 1000px) {
+            .record form { grid-template-columns: 1fr 1fr; }
+            .grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 560px) {
+            body { padding: 1rem; }
+            .tgt-head, .tgt { grid-template-columns: minmax(0, 1fr) 120px; }
+            .hero .big { font-size: 2rem; }
+            .exp .acts { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .card { animation: none; }
+            .bar i { transition: none; }
+        }
+    </style>
+{% include '_privacy.html' %}
+</head>
+<body>
+
+<header>
+    <div class="brand">Finance</div>
+    <nav>
+        <a href="/dashboard-b" class="active">🏠 Dashboard</a>
+        <a href="/money-b">💰 Money</a>
+        <a href="/targets">🎯 Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
+
+<div class="wrap">
+    {% with messages = get_flashed_messages() %}
+      {% for m in messages %}<div class="flash" role="alert">⚠️ {{ m }}</div>{% endfor %}
+    {% endwith %}
+
+    <div class="month-nav">
+        <button type="button" class="month-step" data-step="-1" aria-label="Previous month">‹</button>
+        <label class="month-label" title="Pick a month">
+            <span id="month-text"></span>
+            <input type="month" id="master-month" value="{{ exp_month }}">
+        </label>
+        <button type="button" class="month-step" data-step="1" aria-label="Next month">›</button>
+    </div>
+
+    <section class="card record">
+        <form method="POST">
+            <input type="hidden" name="form_type" value="expense">
+            <input type="date" name="date" id="expense-date" value="{{ today }}" required aria-label="Date">
+            <input type="text" name="description" placeholder="Description" required aria-label="Description">
+            <input type="number" name="amount" step="0.01" placeholder="Amount" required aria-label="Amount">
+            <select name="currency" aria-label="Currency"><option value="HUF">HUF</option><option value="EUR">EUR</option><option value="USD">USD</option></select>
+            <select name="category" id="category-select" aria-label="Category"></select>
+            <button type="submit" class="btn-add">Add expense</button>
+        </form>
+    </section>
+
+    {% macro ft(v) %}{{ "{:,.0f}".format(v or 0).replace(",", ".") }}{% endmacro %}
+    {% macro sign_class(v) %}{{ 'neg' if v < 0 else ('zero' if v == 0 else 'pos') }}{% endmacro %}
+
+    <div class="grid">
+        <!-- Monthly targets: the main element of the page -->
+        <section class="card" style="animation-delay:.05s">
+            <h2>Monthly targets <small>{{ summary.rows | selectattr('target') | list | length }} categories</small></h2>
+
+            {% set t = summary.total %}
+            <div class="hero">
+                <div>
+                    <div class="label">Remaining this month</div>
+                    <div class="big {{ sign_class(t.remaining) }}">{{ ft(t.remaining) }}<small>Ft</small></div>
+                </div>
+                <div class="side">
+                    Spent <b>{{ ft(t.spent) }} Ft</b><br>
+                    of <b>{{ ft(t.target) }} Ft</b> target
+                </div>
+            </div>
+
+            {% if summary.rows %}
+            <div class="tgt-head"><span>Category</span><span>Remaining</span></div>
+            {# Alphabetical; categories without a target this month are hidden. Click a row to filter the expenses. #}
+            {% for r in summary.rows | sort(attribute='category') if r.target %}
+            {% set pct = r.spent / r.target * 100 %}
+            <div class="tgt {{ 'over' if r.remaining < 0 }}" data-category="{{ r.category }}"
+                 role="button" tabindex="0" aria-pressed="false" title="Show only {{ r.category }} expenses">
+                <div>
+                    <div class="name">{{ r.category }}</div>
+                    <div class="detail">
+                        <div class="bar" role="img" aria-label="{{ pct | round(0) | int }}% of target spent"><i data-w="{{ [pct, 100] | min | round(1) }}"></i></div>
+                        <span class="of">{{ ft(r.spent) }} / {{ ft(r.target) }}</span>
+                    </div>
+                </div>
+                <div class="remaining {{ sign_class(r.remaining) }}">{{ ft(r.remaining) }}<small>Ft</small></div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty">No targets for this month. Set them on the Targets page.</div>
+            {% endif %}
+        </section>
+
+        <!-- Recorded expenses: secondary -->
+        <section class="card" style="animation-delay:.12s">
+            <h2>Recorded expenses <small id="expCount">{{ expenses | length }}</small></h2>
+            <div class="filter-bar" id="filterBar" hidden>
+                <span id="filterChips"></span>
+                <button type="button" class="clear" id="clearFilter">Clear filter</button>
+            </div>
+            <div class="list">
+                {% for e in expenses %}
+                {% set ds = e.date | string %}
+                <div class="exp" data-category="{{ e.category }}">
+                    <div class="day">{{ ds[5:7] }}.{{ ds[8:10] }}</div>
+                    <div class="desc">
+                        <div title="{{ e.description }}">{{ e.description }}</div>
+                        <span>{{ e.category }}</span>
+                    </div>
+                    <div class="amt">{{ ft(e.forint) }} Ft</div>
+                    <div class="acts">
+                        <a class="icon-btn" href="/expense/edit/{{ e.id }}?month={{ exp_month }}&year={{ selected_year }}&back=/dashboard-b" title="Edit">✏️</a>
+                        <form method="POST" action="/expense/delete/{{ e.id }}?month={{ exp_month }}&year={{ selected_year }}&back=/dashboard-b" onsubmit="return confirm('Delete this expense?')">
+                            <button class="icon-btn" title="Delete">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty">No expenses recorded this month yet.</div>
+                {% endfor %}
+                {% if expenses %}<div class="empty" id="noMatch" hidden>No expenses in the selected categories.</div>{% endif %}
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    // Fill the target bars once the page has painted
+    requestAnimationFrame(() => setTimeout(() => {
+        document.querySelectorAll('.bar i').forEach(i => i.style.width = i.dataset.w + '%');
+    }, 150));
+
+    // ---------- Category filter: click target rows to filter the expense list ----------
+    // Nothing selected = all expenses shown.
+    const selected = new Set();
+    // Alphabetical with Hungarian rules (so É sorts next to E, not after Z)
+    const sorted = [...document.querySelectorAll('.tgt[data-category]')]
+        .sort((a, b) => a.dataset.category.localeCompare(b.dataset.category, 'hu', { sensitivity: 'base' }));
+    sorted.forEach(r => r.parentNode.appendChild(r));
+    const rows = document.querySelectorAll('.tgt[data-category]');
+    const exps = document.querySelectorAll('.exp[data-category]');
+    function applyFilter() {
+        rows.forEach(r => {
+            const on = selected.has(r.dataset.category);
+            r.classList.toggle('selected', on);
+            r.setAttribute('aria-pressed', on);
+        });
+        let shown = 0;
+        exps.forEach(e => {
+            const visible = selected.size === 0 || selected.has(e.dataset.category);
+            e.hidden = !visible;
+            if (visible) shown++;
+        });
+        document.getElementById('expCount').textContent = selected.size ? `${shown} of ${exps.length}` : exps.length;
+        const noMatch = document.getElementById('noMatch');
+        if (noMatch) noMatch.hidden = shown > 0;
+        document.getElementById('filterBar').hidden = selected.size === 0;
+        const chips = document.getElementById('filterChips');
+        chips.innerHTML = '';
+        [...selected].sort((a, b) => a.localeCompare(b)).forEach(cat => {
+            const c = document.createElement('button');
+            c.type = 'button'; c.className = 'chip'; c.title = 'Remove filter';
+            c.textContent = cat + ' ✕';
+            c.addEventListener('click', () => { selected.delete(cat); applyFilter(); });
+            chips.appendChild(c);
+        });
+    }
+    function toggle(cat) { selected.has(cat) ? selected.delete(cat) : selected.add(cat); applyFilter(); }
+    rows.forEach(r => {
+        r.addEventListener('click', () => toggle(r.dataset.category));
+        r.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(r.dataset.category); } });
+    });
+    document.getElementById('clearFilter').addEventListener('click', () => { selected.clear(); applyFilter(); });
+
+    // Category options come from that month's targets
+    const dateInput = document.getElementById("expense-date");
+    const categorySelect = document.getElementById("category-select");
+    async function loadCategories(month) {
+        try {
+            const res = await fetch(`/api/categories/${month}`);
+            const data = await res.json();
+            categorySelect.innerHTML = "";
+            if (data.has_targets) {
+                // A→Z with Hungarian rules, duplicates removed
+                [...new Set(data.categories)]
+                    .sort((a, b) => a.localeCompare(b, 'hu', { sensitivity: 'base' }))
+                    .forEach(cat => categorySelect.add(new Option(cat, cat)));
+            }
+        } catch (e) { console.error(e); }
+    }
+    loadCategories(dateInput.value.slice(0, 7));
+    dateInput.addEventListener("change", () => loadCategories(dateInput.value.slice(0, 7)));
+
+    // Month selector
+    const monthInput = document.getElementById("master-month");
+    const goTo = ym => { location.href = '?month=' + ym + '&year=' + ym.split('-')[0]; };
+    const [y, m] = monthInput.value.split('-').map(Number);
+    document.getElementById("month-text").textContent = new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    monthInput.addEventListener("change", () => { if (monthInput.value) goTo(monthInput.value); });
+    document.querySelectorAll(".month-step").forEach(b => b.addEventListener("click", () => {
+        const d = new Date(y, m - 1 + Number(b.dataset.step), 1);
+        goTo(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }));
+    document.querySelector(".month-label").addEventListener("click", e => { try { monthInput.showPicker(); e.preventDefault(); } catch (_) {} });
+</script>
+</body>
+</html>

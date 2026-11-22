@@ -4,9 +4,6 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
 from config import DATABASE_URL
-import calendar
-from datetime import datetime, date
-from dateutil.relativedelta import relativedelta
 
 # ------------------------------ [Database Connection] ------------------------------
 if DATABASE_URL:
@@ -22,9 +19,18 @@ else:
 
 @contextmanager
 def get_cursor():
+    """Cursor that commits when the block succeeds and rolls back if it raises.
+    (Postgres runs in autocommit mode; SQLite needs the explicit commit, otherwise
+    writes stay pending and keep the database file locked.)"""
     cur = conn.cursor()
     try:
         yield cur
+        if not IS_POSTGRES:
+            conn.commit()
+    except Exception:
+        if not IS_POSTGRES:
+            conn.rollback()
+        raise
     finally:
         cur.close()
 
@@ -84,10 +90,6 @@ def get_categories_for_month(month):
         cur.execute(f"SELECT * FROM expense_target WHERE month={SQL_PLACEHOLDER} ORDER BY amount DESC", (month,))
         return cur.fetchall()
 
-def get_annual_targets(year):
-    with get_cursor() as cur:
-        cur.execute(f"SELECT month, category, amount FROM expense_target WHERE month LIKE {SQL_PLACEHOLDER} ORDER BY month ASC, amount DESC", (f"{year}-%",))
-        return cur.fetchall()
 
 def get_monthly_records(month_str, table_name):
     date_clause = "to_char(date, 'YYYY-MM') = %s" if IS_POSTGRES else "strftime('%Y-%m', date) = ?"
@@ -95,27 +97,6 @@ def get_monthly_records(month_str, table_name):
         cur.execute(f"SELECT * FROM {table_name} WHERE {date_clause} ORDER BY date DESC", (month_str,))
         return cur.fetchall()
 
-def get_annual_summary(year):
-    date_clause = "to_char(date, 'YYYY-MM') = %s" if IS_POSTGRES else "strftime('%Y-%m', date) = ?"
-    annual_data = []
-    with get_cursor() as cur:
-        for m in range(1, 13):
-            month_str = f"{year}-{m:02d}"
-            cur.execute(f"SELECT SUM(forint) AS total_val FROM income_record WHERE {date_clause} AND forint > 0", (month_str,))
-            res_in = cur.fetchone()
-            inflow = res_in["total_val"] if res_in and res_in["total_val"] else 0
-            
-            cur.execute(f"SELECT SUM(forint) AS total_val FROM income_record WHERE {date_clause} AND forint < 0", (month_str,))
-            res_out = cur.fetchone()
-            outflow = res_out["total_val"] if res_out and res_out["total_val"] else 0
-            
-            annual_data.append({
-                "month_name": calendar.month_name[m],
-                "inflow": float(inflow),
-                "outflow": float(outflow),
-                "net": float(inflow + outflow)
-            })
-    return annual_data
 
 def get_summary(from_date, to_date):
     month_str = from_date[:7]
@@ -135,34 +116,6 @@ def get_summary(from_date, to_date):
         rows.append({"category": cat, "target": round(target,2), "spent": round(s,2), "remaining": round(r,2)})
         t_t += target; t_s += s; t_r += r
     return {"rows": rows, "total": {"target": t_t, "spent": t_s, "remaining": t_r}}
-
-def get_money_log_summary():
-    with get_cursor() as cur:
-        query = """
-            SELECT date, SUM(forint) AS total_wealth_huf,
-                SUM(CASE WHEN liquid = 1 THEN forint ELSE 0 END) AS total_liquid_huf,
-                SUM(CASE WHEN currency = 'HUF' THEN amount ELSE 0 END) AS sum_huf,
-                SUM(CASE WHEN currency = 'EUR' THEN amount ELSE 0 END) AS sum_eur,
-                SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END) AS sum_usd,
-                AVG(eur_rate) AS avg_eur_rate, AVG(usd_rate) AS avg_usd_rate
-            FROM money_log GROUP BY date ORDER BY date DESC
-        """
-        cur.execute(query)
-        summary_rows = []
-        for r in cur.fetchall():
-            huf_total = float(r['total_wealth_huf'] or 0)
-            eur_rate, usd_rate = float(r['avg_eur_rate'] or 1), float(r['avg_usd_rate'] or 1)
-            summary_rows.append({
-                "date": r['date'], "total_wealth_huf": huf_total,
-                "total_wealth_eur": huf_total / eur_rate if eur_rate else 0,
-                "total_liquid_huf": float(r['total_liquid_huf'] or 0),
-                "sum_huf": float(r['sum_huf'] or 0), "sum_eur": float(r['sum_eur'] or 0), "sum_usd": float(r['sum_usd'] or 0),
-                "p_huf": (float(r['sum_huf'] or 0) / huf_total * 100) if huf_total else 0,
-                "p_eur": ((float(r['sum_eur'] or 0) * eur_rate) / huf_total * 100) if huf_total else 0,
-                "p_usd": ((float(r['sum_usd'] or 0) * usd_rate) / huf_total * 100) if huf_total else 0,
-                "eur_rate": eur_rate, "usd_rate": usd_rate
-            })
-        return summary_rows
 
 def save_money_logs(selected_date, eur_rate, usd_rate, rows):
     formatted_date = selected_date.replace('.', '-')
@@ -222,36 +175,3 @@ def get_single_record(table, record_id):
     with get_cursor() as cur:
         cur.execute(f"SELECT * FROM {table}_record WHERE id={SQL_PLACEHOLDER}", (record_id,))
         return cur.fetchone()
-
-def generate_monthly_cashflows(target_month_str):
-    target_date = datetime.strptime(target_month_str, "%Y-%m")
-    prev_date = target_date - relativedelta(months=1)
-    prev_month_str = prev_date.strftime("%Y-%m")
-    first_day_target = target_date.strftime("%Y-%m-01")
-    date_clause = "to_char(date, 'YYYY-MM') = %s" if IS_POSTGRES else "strftime('%Y-%m', date) = ?"
-
-    with get_cursor() as cur:
-        cur.execute(f"DELETE FROM income_record WHERE {date_clause}", (target_month_str,))
-        cur.execute(f"SELECT SUM(amount) as total_target FROM expense_target WHERE month = {SQL_PLACEHOLDER}", (prev_month_str,))
-        target_res = cur.fetchone()
-        target_sum = float(target_res["total_target"]) if target_res and target_res["total_target"] else 0.0
-        
-        if target_sum > 0:
-            cur.execute(f"""
-                INSERT INTO income_record (date, description, amount, currency, forint)
-                VALUES ({SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER})
-            """, (first_day_target, "Target Budget Allocation", -target_sum, "HUF", -target_sum))
-
-        cur.execute(f"""
-            SELECT date, description, amount, currency, forint
-            FROM income_record
-            WHERE {date_clause} AND description != 'Target Budget Allocation'
-        """, (prev_month_str,))
-        
-        prev_records = cur.fetchall()
-        for rec in prev_records:
-            new_date = first_day_target
-            cur.execute(f"""
-                INSERT INTO income_record (date, description, amount, currency, forint)
-                VALUES ({SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER})
-            """, (new_date, rec["description"], rec["amount"], rec["currency"], rec["forint"]))

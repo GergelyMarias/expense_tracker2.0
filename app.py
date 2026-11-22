@@ -31,12 +31,39 @@ def require_login():
     if request.endpoint not in allowed_endpoints and not session.get('logged_in'):
         return redirect(url_for('auth.login'))
 
-# ------------------------------ [Database Management Routes] ------------------------------
+# ------------------------------ [Privacy: hide amounts] ------------------------------
+@app.context_processor
+def inject_privacy():
+    # Every template gets `hide_amounts`; templates/_privacy.html blurs money values when it's on
+    return {"hide_amounts": bool(session.get("hide_amounts"))}
+
+@app.route('/settings/privacy', methods=['POST'])
+def set_privacy():
+    session['hide_amounts'] = request.form.get('hide_amounts') == 'on'
+    nxt = request.form.get('next') or ''
+    # only redirect to local pages
+    return redirect(nxt if nxt.startswith('/') and not nxt.startswith('//') else url_for('settings_page'))
+
+# ------------------------------ [Settings (backup, restore, database info)] ------------------------------
+@app.route('/settings')
+def settings_page():
+    from db import IS_POSTGRES
+    try:
+        info = get_db_info()
+    except Exception as e:  # never let a stats query break the page
+        info, _ = [], e
+    return render_template(
+        'settings.html',
+        info=info,
+        engine="PostgreSQL" if IS_POSTGRES else "SQLite (local.db)",
+        last_status=session.pop('backup_status', None),
+        last_ok=session.pop('backup_ok', None),
+    )
+
+# Old address: keep bookmarks working
 @app.route('/database')
 def database_page():
-    info = get_db_info() if request.args.get('show_info') else None
-    last_status = session.pop('backup_status', None)
-    return render_template('database_backup.html', info=info, last_status=last_status)
+    return redirect(url_for('settings_page'))
 
 @app.route('/db/download-backup')
 def download_backup():
@@ -51,21 +78,18 @@ def download_backup():
 @app.route('/db/upload-restore', methods=['POST'])
 def upload_restore():
     if 'backup_file' not in request.files:
-        return redirect(url_for('database_page'))
+        return redirect(url_for('settings_page'))
         
     file = request.files['backup_file']
     if file.filename == '':
-        return redirect(url_for('database_page'))
+        return redirect(url_for('settings_page'))
 
     success, status = restore_from_bytes(file.read())
     session['backup_status'] = status
-    return redirect(url_for('database_page'))
+    session['backup_ok'] = success
+    return redirect(url_for('settings_page'))
 
 # ------------------------------ [Main Routing Registration] ------------------------------
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/') 
 
 # Register standard routes and the new Investment Blueprint
 register_routes(app)

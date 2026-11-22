@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f5f7; --surface: #ffffff; --line: #e6e8ec; --line-soft: #f0f1f4;
+            --text: #1f2430; --text-2: #5b6272; --muted: #9aa1ae; --accent: #40739e; --accent-bg: #eaf0f6;
+            --good: #1f8a5b; --good-bg: #e9f6ef; --bad: #d14343; --bad-bg: #fcecec; --warn: #b87800; --warn-bg: #fdf4e3;
+            --radius: 14px; --shadow: 0 1px 2px rgba(20,30,50,.04), 0 4px 16px rgba(20,30,50,.05);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 1.2rem 2rem 3rem; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); font-variant-numeric: tabular-nums; }
+
+        header {
+            max-width: 1240px; margin: 0 auto 1.4rem; padding: .8rem 1.3rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .brand { font-weight: 800; } .brand span { color: var(--muted); font-weight: 600; margin-left: .3rem; }
+        nav { display: flex; gap: .2rem; flex-wrap: wrap; }
+        nav a { color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .85rem; padding: .45rem .75rem; border-radius: 8px; transition: background .2s, color .2s; }
+        nav a:hover { background: var(--line-soft); color: var(--text); }
+        nav a.active { background: var(--accent-bg); color: var(--accent); }
+
+        .wrap { max-width: 960px; margin: 0 auto; }
+        h1 { font-size: 1.25rem; font-weight: 800; margin: 0 0 .25rem; }
+        .sub { color: var(--muted); font-size: .85rem; margin: 0 0 1.2rem; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.3rem 1.4rem; animation: fade .45s ease both; display: flex; flex-direction: column; }
+        .card.wide { grid-column: 1 / -1; }
+        @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+        .card h2 { margin: 0 0 .3rem; font-size: .95rem; font-weight: 700; display: flex; align-items: center; gap: .5rem; }
+        .card p { margin: 0 0 1.1rem; color: var(--text-2); font-size: .85rem; line-height: 1.5; flex: 1; }
+        .icon { width: 30px; height: 30px; border-radius: 9px; display: inline-grid; place-items: center; font-size: .95rem; background: var(--accent-bg); }
+        .icon.warn { background: var(--warn-bg); }
+
+        .btn { display: inline-flex; justify-content: center; align-items: center; gap: .4rem; border: none; border-radius: 9px; padding: .65rem 1.1rem; font: inherit; font-weight: 700; font-size: .88rem; cursor: pointer; text-decoration: none; transition: background .2s, opacity .2s; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: #355f84; }
+        .btn-warn { background: #fff; color: var(--warn); border: 1px solid #ecd3a3; }
+        .btn-warn:hover { background: var(--warn-bg); }
+        .btn-warn:disabled { opacity: .5; cursor: default; }
+
+        /* File picker */
+        .drop {
+            display: flex; align-items: center; gap: .7rem; padding: .75rem .9rem; margin-bottom: .7rem;
+            border: 1px dashed #cfd5dd; border-radius: 10px; background: #fafbfc; cursor: pointer; transition: border-color .2s, background .2s;
+        }
+        .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-bg); }
+        .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+        .drop .fname { font-size: .85rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .drop .fname b { color: var(--text); }
+        .drop .pick { margin-left: auto; font-size: .78rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+        .warn-note { font-size: .78rem; color: var(--warn); margin: 0 0 .8rem; }
+
+        /* Report */
+        .report { border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; border: 1px solid; animation: fade .45s ease both; }
+        .report.ok { background: var(--good-bg); border-color: #bfe5d1; }
+        .report.fail { background: var(--bad-bg); border-color: #f0c4c4; }
+        .report h3 { margin: 0 0 .6rem; font-size: .9rem; }
+        .report.ok h3 { color: var(--good); } .report.fail h3 { color: var(--bad); }
+        .report ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .3rem 1rem; font-size: .82rem; }
+        .report li { color: var(--text-2); }
+        .report li b { color: var(--text); }
+
+        /* Database info */
+        .engine { display: inline-block; font-size: .72rem; font-weight: 700; color: var(--accent); background: var(--accent-bg); padding: .15rem .55rem; border-radius: 999px; margin-left: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        th { text-align: left; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: .5rem .5rem; border-bottom: 1px solid var(--line); }
+        td { padding: .65rem .5rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        th.r, td.r { text-align: right; }
+        td.name { font-weight: 600; white-space: nowrap; }
+        td.rows { font-weight: 800; white-space: nowrap; }
+        .cols { display: flex; flex-wrap: wrap; gap: .25rem; }
+        .cols span { font-size: .7rem; color: var(--text-2); background: var(--line-soft); padding: .1rem .45rem; border-radius: 6px; }
+        .desc { font-size: .75rem; color: var(--muted); font-weight: 400; margin-top: .1rem; white-space: normal; }
+
+        /* Hide amounts */
+        .privacy-row { display: flex; align-items: center; gap: .9rem; cursor: pointer; }
+        .privacy-row .txt { flex: 1; }
+        .privacy-row b { display: block; font-size: .95rem; }
+        .privacy-row small { display: block; font-size: .82rem; color: var(--text-2); margin-top: .15rem; line-height: 1.45; }
+        .privacy-row .state { font-size: .75rem; font-weight: 700; color: var(--muted); min-width: 24px; text-align: right; }
+        .switch { position: relative; width: 46px; height: 26px; flex: none; }
+        .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .switch span { position: absolute; inset: 0; border-radius: 999px; background: #d5dbe2; transition: .2s; }
+        .switch span::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: .2s; }
+        .switch input:checked + span { background: var(--accent); }
+        .switch input:checked + span::before { transform: translateX(20px); }
+        .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+        @media (max-width: 760px) { body { padding: 1rem; } .grid { grid-template-columns: 1fr; } }
+        @media (prefers-reduced-motion: reduce) { .card, .report { animation: none; } }
+    </style>
+{% include '_privacy.html' %}
+</head>
+<body>
+
+<header>
+    <div class="brand">Finance</div>
+    <nav>
+        <a href="/dashboard-b">🏠 Dashboard</a>
+        <a href="/money-b">💰 Money</a>
+        <a href="/targets">🎯 Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/settings" class="active">⚙️ Settings</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
+
+<div class="wrap">
+    <h1>Settings</h1>
+    <p class="sub">Back up and restore your data, and check what's stored.</p>
+
+    {% if last_status %}
+    <div class="report {{ 'ok' if last_ok else 'fail' }}" role="status">
+        <h3>{{ '✓ Restore finished' if last_ok else '✕ Restore failed' }}</h3>
+        <ul>
+            {% for s in last_status %}
+            <li><b>{{ s.table }}</b> · {{ s.status }}{% if s.rows %} ({{ s.rows }} rows){% endif %}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="grid">
+        <section class="card wide privacy-card" style="animation-delay:0s">
+            <form method="POST" action="/settings/privacy" class="privacy-toggle-form" id="privacyForm">
+                <label class="privacy-row" for="hideAmounts">
+                    <span class="icon">{{ '🙈' if hide_amounts else '👁' }}</span>
+                    <span class="txt">
+                        <b>Hide amounts</b>
+                        <small>Blur every money value on all pages, so you can open the app around others. Percentages stay visible. Click into an amount field to edit it.</small>
+                    </span>
+                    <span class="state">{{ 'On' if hide_amounts else 'Off' }}</span>
+                    <span class="switch">
+                        <input type="checkbox" name="hide_amounts" id="hideAmounts" {% if hide_amounts %}checked{% endif %}>
+                        <span></span>
+                    </span>
+                </label>
+                <noscript><button type="submit" class="btn btn-primary">Save</button></noscript>
+            </form>
+        </section>
+
+        <section class="card" style="animation-delay:.03s">
+            <h2><span class="icon">⬇️</span>Download backup</h2>
+            <p>Save all your data (expenses, cash flow, targets and money snapshots) as one file on this computer.</p>
+            <a href="/db/download-backup" class="btn btn-primary">Download backup file</a>
+        </section>
+
+        <section class="card" style="animation-delay:.07s">
+            <h2><span class="icon warn">⬆️</span>Restore from backup</h2>
+            <p>Load a backup file you saved earlier. Tables the app no longer uses are skipped.</p>
+            <form action="/db/upload-restore" method="POST" enctype="multipart/form-data" id="restoreForm">
+                <label class="drop" id="drop">
+                    <input type="file" name="backup_file" accept=".pkl" required id="fileInput">
+                    <span class="fname" id="fname">No file selected</span>
+                    <span class="pick">Choose file</span>
+                </label>
+                <p class="warn-note">⚠ Replaces everything currently stored with the file's contents.</p>
+                <button type="submit" class="btn btn-warn" id="restoreBtn" disabled style="width:100%">Restore database</button>
+            </form>
+        </section>
+
+        <section class="card wide" style="animation-delay:.11s">
+            <h2><span class="icon">🗄️</span>Database <span class="engine">{{ engine }}</span></h2>
+            {% set about = {
+                'expense_record': 'Expenses recorded on the dashboard',
+                'income_record': 'CashFlow rows, one per description per month',
+                'expense_target': 'Monthly targets per category',
+                'money_log': 'Money snapshots, one row per account per date'
+            } %}
+            <table class="pv-skip">
+                <thead><tr><th>Table</th><th class="r">Rows</th><th>Columns</th></tr></thead>
+                <tbody>
+                    {% for t in info %}
+                    <tr>
+                        <td class="name">{{ t.name }}<div class="desc">{{ about.get(t.name, '') }}</div></td>
+                        <td class="r rows">{{ "{:,}".format(t.rows).replace(",", ".") }}</td>
+                        <td><div class="cols">{% for c in t.cols.split(', ') if c %}<span>{{ c }}</span>{% endfor %}</div></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" style="color:var(--muted)">Table information is unavailable.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+
+<script>
+    // Hide amounts: save as soon as the switch changes
+    document.getElementById('hideAmounts').addEventListener('change', () => document.getElementById('privacyForm').submit());
+
+    // File picker: show the chosen name, enable restore, allow drag & drop
+    const input = document.getElementById('fileInput');
+    const drop = document.getElementById('drop');
+    const fname = document.getElementById('fname');
+    const btn = document.getElementById('restoreBtn');
+    function update() {
+        const f = input.files[0];
+        fname.innerHTML = f ? `<b>${f.name.replace(/[<>&]/g, '')}</b> · ${(f.size / 1024).toFixed(0)} KB` : 'No file selected';
+        btn.disabled = !f;
+    }
+    input.addEventListener('change', update);
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; update(); } });
+    document.getElementById('restoreForm').addEventListener('submit', e => {
+        if (!confirm('This replaces all current data with the selected backup. Continue?')) e.preventDefault();
+    });
+</script>
+</body>
+</html>

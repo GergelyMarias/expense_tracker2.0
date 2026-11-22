@@ -2,7 +2,7 @@
 # utils.py
 ######################
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 import yfinance as yf
 
 # Formatting Helpers
@@ -13,32 +13,24 @@ def huf(value):
         return "0 Ft"
 
 
-# Date Helpers
-def today_iso():
-    return date.today().isoformat()
-
-def month_start(date_obj=None):
-    if date_obj is None:
-        date_obj = date.today()
-    return date_obj.replace(day=1).isoformat()
-
-def month_str(date_obj=None):
-    if date_obj is None:
-        date_obj = date.today()
-    return date_obj.strftime("%Y-%m")
-
-def parse_date(d):
-    return datetime.strptime(d, "%Y-%m-%d").date()
-
-
 # FX Conversion
-def convert_to_huf(amount, currency, d):
+_rate_cache = {}  # (currency, 'YYYY-MM-DD') -> rate; past closes never change
+
+def get_huf_rate(currency, d):
+    """HUF per 1 unit of currency on date d (last Yahoo Finance close on or before d).
+    Future dates use the latest available close."""
     if currency == "HUF":
-        return float(amount)
-    date_obj = datetime.strptime(d, "%Y-%m-%d")
+        return 1.0
+    date_obj = datetime.strptime(str(d)[:10], "%Y-%m-%d")
+    today = datetime.now()
+    lookup = min(date_obj, today)
+    key = (currency, lookup.strftime("%Y-%m-%d"))
+    if key in _rate_cache:
+        return _rate_cache[key]
+
     data = yf.download(f"{currency}HUF=X",
-                       start=date_obj - timedelta(days=7),
-                       end=date_obj + timedelta(days=1),
+                       start=lookup - timedelta(days=10),
+                       end=lookup + timedelta(days=1),
                        progress=False)
     if data is None or data.empty:
         raise ValueError(f"{currency}/HUF exchange rate unavailable for {d}")
@@ -47,12 +39,17 @@ def convert_to_huf(amount, currency, d):
     if hasattr(close, "columns"):
         close = close.iloc[:, 0]
     close = close.ffill().dropna()
-    close = close[close.index <= date_obj]
+    close = close[close.index <= lookup]
     if close.empty:
         raise ValueError(f"{currency}/HUF exchange rate unavailable for {d}")
     # .iloc[-1] on a Series is a scalar; float(Series) raises TypeError on pandas 3
-    rate = float(close.iloc[-1])
-    return round(float(amount) * rate, 2)
+    rate = round(float(close.iloc[-1]), 4)
+    if lookup.date() < today.date():  # today's rate can still move: don't cache it
+        _rate_cache[key] = rate
+    return rate
+
+def convert_to_huf(amount, currency, d):
+    return round(float(amount) * get_huf_rate(currency, d), 2)
 
 def format_amount(value):
     """

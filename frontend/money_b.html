@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Money B</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #f4f5f7; --surface: #ffffff; --line: #e6e8ec; --line-soft: #f0f1f4;
+            --text: #1f2430; --text-2: #5b6272; --muted: #9aa1ae; --accent: #40739e;
+            --good: #1f8a5b; --good-bg: #e9f6ef; --bad: #d14343; --bad-bg: #fcecec; --warn: #b87800; --warn-bg: #fdf4e3;
+            /* chart series (validated categorical order) */
+            --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --plan: #b8bcc2;
+            --radius: 14px; --shadow: 0 1px 2px rgba(20,30,50,.04), 0 4px 16px rgba(20,30,50,.05);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 1.2rem 2rem 3rem; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); font-variant-numeric: tabular-nums; }
+
+        header {
+            max-width: 1240px; margin: 0 auto 1.4rem; padding: .8rem 1.3rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .brand { font-weight: 800; } .brand span { color: var(--muted); font-weight: 600; margin-left: .3rem; }
+        nav { display: flex; gap: .2rem; flex-wrap: wrap; }
+        nav a { color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .85rem; padding: .45rem .75rem; border-radius: 8px; transition: background .2s, color .2s; }
+        nav a:hover { background: var(--line-soft); color: var(--text); }
+        nav a.active { background: #eaf0f6; color: var(--accent); }
+        .wrap { max-width: 1240px; margin: 0 auto; }
+
+        .intro { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+        .intro p { margin: 0; color: var(--text-2); font-size: .88rem; max-width: 720px; }
+        .btn { display: inline-block; border: none; border-radius: 9px; padding: .6rem 1.1rem; font: inherit; font-weight: 700; font-size: .88rem; cursor: pointer; color: #fff; background: var(--accent); text-decoration: none; transition: background .2s; }
+        .btn:hover { background: #355f84; }
+
+        .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.2rem; }
+        .span-12 { grid-column: span 12; } .span-8 { grid-column: span 8; } .span-7 { grid-column: span 7; }
+        .span-6 { grid-column: span 6; } .span-5 { grid-column: span 5; } .span-4 { grid-column: span 4; }
+
+        .card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.3rem 1.4rem; animation: fade .5s ease both; min-width: 0; }
+        @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+        .card h2 { margin: 0 0 .25rem; font-size: .95rem; font-weight: 700; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+        .card .why { margin: 0 0 1rem; color: var(--muted); font-size: .8rem; }
+        .idea { font-size: .68rem; font-weight: 700; color: var(--accent); background: #eaf0f6; padding: .15rem .5rem; border-radius: 999px; letter-spacing: .03em; }
+        .seg { margin-left: auto; display: inline-flex; background: var(--line-soft); border-radius: 8px; padding: 2px; }
+        .seg button { border: none; background: none; font: inherit; font-size: .75rem; font-weight: 600; color: var(--text-2); padding: .3rem .65rem; border-radius: 6px; cursor: pointer; }
+        .seg button.on { background: #fff; color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+        .pos { color: var(--good); } .neg { color: var(--bad); } .muted { color: var(--muted); }
+        .chart { position: relative; height: 300px; }
+        .chart.tall { height: 340px; }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .78rem; color: var(--text-2); margin-bottom: .6rem; }
+        .legend span { display: inline-flex; align-items: center; gap: .35rem; }
+        .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+        .legend i.dash { height: 0; width: 16px; border-top: 2px dashed var(--s1); border-radius: 0; }
+
+        /* Idea 1: headline */
+        .hero { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 1.2rem; align-items: end; }
+        .hero .label { font-size: .78rem; color: var(--text-2); font-weight: 600; }
+        .hero .big { font-size: 2.7rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin-top: .2rem; }
+        .hero .big small, .stat .v small { font-size: 1rem; font-weight: 700; margin-left: .2rem; }
+        .stat { border-left: 1px solid var(--line); padding-left: 1.1rem; }
+        .stat .v { font-size: 1.35rem; font-weight: 800; margin-top: .25rem; white-space: nowrap; }
+        .stat .s { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+        .stale[hidden] { display: none; }
+        .stale { margin-top: .9rem; font-size: .8rem; padding: .5rem .8rem; border-radius: 8px; background: var(--warn-bg); color: var(--warn); display: inline-block; }
+
+        /* Lists (ideas 3, 4) */
+        .rows { display: flex; flex-direction: column; }
+        .r { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .8rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--line-soft); }
+        .r:last-child { border-bottom: none; }
+        .r .n { font-weight: 600; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .r .n .tag { font-size: .66rem; font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 .4rem; margin-left: .35rem; vertical-align: 1px; }
+        .r .v { font-weight: 700; font-size: .9rem; white-space: nowrap; text-align: right; }
+        .r .v small { display: block; font-weight: 500; font-size: .72rem; color: var(--muted); }
+        .hbar { height: 6px; border-radius: 999px; background: var(--line-soft); margin-top: .35rem; overflow: hidden; }
+        .hbar i { display: block; height: 100%; border-radius: 999px; width: 0; transition: width .9s cubic-bezier(.2,.7,.2,1); }
+        .split { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; margin: .2rem 0 .5rem; }
+        .split i { display: block; height: 100%; }
+        .scroll { max-height: 420px; overflow-y: auto; margin-right: -.5rem; padding-right: .5rem; scrollbar-width: thin; }
+
+        /* Idea 6: runway */
+        .runway .big { font-size: 2.4rem; font-weight: 800; letter-spacing: -.02em; }
+        .runway .big small { font-size: 1rem; font-weight: 700; margin-left: .25rem; }
+        .track { position: relative; height: 12px; border-radius: 999px; background: linear-gradient(90deg, var(--bad-bg) 0 25%, var(--warn-bg) 25% 50%, var(--good-bg) 50% 100%); margin: 1rem 0 .4rem; }
+        .track .mark { position: absolute; top: -5px; width: 4px; height: 22px; border-radius: 2px; background: var(--text); transform: translateX(-2px); transition: left .9s cubic-bezier(.2,.7,.2,1); left: 0; }
+        .ticks { display: flex; justify-content: space-between; font-size: .7rem; color: var(--muted); }
+        .note { font-size: .8rem; color: var(--text-2); margin-top: .9rem; line-height: 1.5; }
+
+        /* Idea 8: milestone */
+        .ms-bar { height: 14px; border-radius: 999px; background: var(--line-soft); overflow: hidden; margin: 1rem 0 .4rem; }
+        .ms-bar i { display: block; height: 100%; width: 0; background: var(--s1); border-radius: 999px; transition: width 1s cubic-bezier(.2,.7,.2,1); }
+
+        /* Idea 9: table */
+        table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        th { text-align: right; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: .5rem .6rem; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff; }
+        td { text-align: right; padding: .55rem .6rem; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+        th:first-child, td:first-child { text-align: left; }
+        tr:hover td { background: #f8f9fb; }
+
+        @media (max-width: 1000px) {
+            .span-8, .span-7, .span-6, .span-5, .span-4 { grid-column: span 12; }
+            .hero { grid-template-columns: 1fr 1fr; }
+            .stat { border-left: none; padding-left: 0; }
+        }
+        @media (max-width: 560px) { body { padding: 1rem; } .hero { grid-template-columns: 1fr; } }
+        @media (prefers-reduced-motion: reduce) { .card { animation: none; } .hbar i, .track .mark, .ms-bar i { transition: none; } }
+    </style>
+{% include '_privacy.html' %}
+</head>
+<body>
+
+<header>
+    <div class="brand">Finance</div>
+    <nav>
+        <a href="/dashboard-b">🏠 Dashboard</a>
+        <a href="/money-b" class="active">💰 Money</a>
+        <a href="/targets">🎯 Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
+
+<div class="wrap">
+    <div class="intro">
+        <p></p>
+        <a class="btn" href="/money/register">+ New snapshot</a>
+    </div>
+
+    {% if not snaps %}
+    <div class="card"><p class="muted">No money snapshots recorded yet.</p></div>
+    {% else %}
+    <div class="grid">
+
+        <!-- Net worth -->
+        <section class="card span-12" style="animation-delay:.02s">
+            <h2>Net worth today</h2>
+            <p class="why">The one number that matters, how it moved, and how much of it you can reach.</p>
+            <div class="hero">
+                <div>
+                    <div class="label">Total wealth · snapshot <span id="i1-date"></span></div>
+                    <div class="big" id="i1-total"></div>
+                </div>
+                <div class="stat"><div class="label">Since last snapshot</div><div class="v" id="i1-d1"></div><div class="s" id="i1-d1s"></div></div>
+                <div class="stat"><div class="label">Over 12 months</div><div class="v" id="i1-d12"></div><div class="s" id="i1-d12s"></div></div>
+                <div class="stat"><div class="label">Liquid (reachable)</div><div class="v" id="i1-liq"></div><div class="s" id="i1-liqs"></div></div>
+            </div>
+            <div class="stale" id="i1-stale" hidden></div>
+        </section>
+
+        <!-- Wealth over time -->
+        <section class="card span-12" style="animation-delay:.06s">
+            <h2>Wealth over time
+                <span class="seg" id="i2-range"><button data-r="12">1Y</button><button data-r="24">2Y</button><button data-r="0" class="on">All</button></span>
+            </h2>
+            <p class="why">Actual snapshots, and where the CashFlow plan says you'll be.</p>
+            <div class="legend">
+                <span><i style="background:var(--s1)"></i>Total wealth</span>
+                <span><i class="dash"></i>Projected (CashFlow plan)</span>
+            </div>
+            <div class="chart tall"><canvas id="i2-chart" role="img" aria-label="Line chart of total wealth over time with projection"></canvas></div>
+        </section>
+
+        <!-- Breakdown -->
+        <section class="card span-7" style="animation-delay:.1s">
+            <h2>Where the money is
+                <span class="seg" id="i4-mode"><button data-m="account" class="on">Accounts</button><button data-m="liquid">Liquidity</button><button data-m="currency">Currency</button></span>
+            </h2>
+            <p class="why">Latest snapshot split by account, by how reachable it is, or by currency.</p>
+            <div class="split" id="i4-split"></div>
+            <div class="legend" id="i4-legend"></div>
+            <div class="rows scroll" id="i4-list"></div>
+        </section>
+
+        <!-- Liquidity runway -->
+        <section class="card span-5 runway" style="animation-delay:.14s">
+            <h2>Liquidity runway</h2>
+            <p class="why">How long your liquid money would cover your actual spending.</p>
+            <div class="big" id="i6-months"></div>
+            <div class="track"><span class="mark" id="i6-mark"></span></div>
+            <div class="ticks"><span>0</span><span>3 mo</span><span>6 mo</span><span>12+ mo</span></div>
+            <div class="note" id="i6-note"></div>
+        </section>
+
+        <!-- Plan vs actual -->
+        <section class="card span-12" style="animation-delay:.18s">
+            <h2>Plan vs actual</h2>
+            <p class="why">Each month: planned net cash flow (CashFlow page) next to the real change in wealth between snapshots. Real change includes market gains and losses.</p>
+            <div class="legend">
+                <span><i style="background:var(--plan)"></i>Planned</span>
+                <span><i style="background:var(--s1)"></i>Actual change</span>
+            </div>
+            <div class="chart"><canvas id="i7-chart" role="img" aria-label="Grouped bar chart of planned versus actual monthly change"></canvas></div>
+        </section>
+
+        <!-- Snapshot history -->
+        <section class="card span-12" style="animation-delay:.22s">
+            <h2>Snapshot history</h2>
+            <p class="why">Every snapshot with its total, change since the previous one, liquid share and the EUR rate.</p>
+            <div class="scroll">
+                <table>
+                    <thead><tr><th>Date</th><th>Total</th><th>Change</th><th>Liquid</th><th>Liquid %</th><th>EUR/HUF</th></tr></thead>
+                    <tbody id="i9-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+    </div>
+    {% endif %}
+</div>
+
+{% if snaps %}
+<script>
+const SNAPS = {{ snaps | tojson }};
+const ACCOUNTS = {{ accounts | tojson }};
+const PREV = {{ prev_accounts | tojson }};
+const PLAN = {{ plan | tojson }};
+const SPENDING = {{ spending | tojson }};
+const TODAY_M = '{{ today }}';
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { s1: css('--s1'), s2: css('--s2'), s3: css('--s3'), plan: css('--plan'), good: css('--good'), bad: css('--bad'), grid: '#eef0f3', text: '#5b6272' };
+const fmt = n => { const r = Math.round(n); return (r < 0 ? '-' : '') + Math.abs(r).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
+const ft = n => fmt(n) + ' Ft';
+const signed = n => (n > 0 ? '+' : '') + fmt(n);
+const cls = n => n > 0 ? 'pos' : (n < 0 ? 'neg' : 'muted');
+const pct = (a, b) => b ? (a / b * 100) : 0;
+const short = v => Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString('hu-HU', { maximumFractionDigits: 1 }) + 'M' : fmt(v);
+const monthLabel = ym => { const [y, m] = ym.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }); };
+const dateLabel = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const el = id => document.getElementById(id);
+
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = C.text;
+Chart.defaults.animation.duration = 700;
+const axisMoney = { grid: { color: C.grid }, border: { display: false }, ticks: { callback: short } };
+
+const last = SNAPS[SNAPS.length - 1];
+const prevSnap = SNAPS.length > 1 ? SNAPS[SNAPS.length - 2] : null;
+
+// Last snapshot of each month (monthly series)
+const byMonth = {};
+SNAPS.forEach(s => byMonth[s.date.slice(0, 7)] = s);
+const months = Object.keys(byMonth).sort();
+
+/* ---------- Net worth: headline ---------- */
+(() => {
+    el('i1-date').textContent = dateLabel(last.date);
+    el('i1-total').innerHTML = fmt(last.total) + '<small>Ft</small>';
+    if (prevSnap) {
+        const d = last.total - prevSnap.total;
+        el('i1-d1').className = 'v ' + cls(d);
+        el('i1-d1').innerHTML = signed(d) + '<small>Ft</small>';
+        el('i1-d1s').textContent = `${signed(pct(d, prevSnap.total).toFixed(1))}% vs ${dateLabel(prevSnap.date)}`;
+    }
+    // Snapshot closest to 12 months before the latest
+    const target = new Date(last.date); target.setFullYear(target.getFullYear() - 1);
+    const yearAgo = SNAPS.reduce((best, s) => Math.abs(new Date(s.date) - target) < Math.abs(new Date(best.date) - target) ? s : best, SNAPS[0]);
+    if (yearAgo !== last) {
+        const d = last.total - yearAgo.total;
+        el('i1-d12').className = 'v ' + cls(d);
+        el('i1-d12').innerHTML = signed(d) + '<small>Ft</small>';
+        el('i1-d12s').textContent = `${signed(pct(d, yearAgo.total).toFixed(1))}% vs ${dateLabel(yearAgo.date)}`;
+    }
+    el('i1-liq').innerHTML = fmt(last.liquid) + '<small>Ft</small>';
+    el('i1-liqs').textContent = `${pct(last.liquid, last.total).toFixed(0)}% of total · ${fmt(last.total - last.liquid)} Ft locked`;
+    const days = Math.round((Date.now() - new Date(last.date)) / 864e5);
+    if (days > 35) { el('i1-stale').hidden = false; el('i1-stale').textContent = `Last snapshot was ${days} days ago — time for a new one.`; }
+})();
+
+/* ---------- Wealth over time: wealth over time + projection ---------- */
+(() => {
+    const lastM = last.date.slice(0, 7);
+    // Projection: start from the latest snapshot, add each later month's planned net cash flow
+    const t = d => new Date(d).getTime();
+    let run = last.total;
+    const proj = PLAN.filter(p => p.month > lastM).map(p => ({ x: t(p.month + '-15'), y: (run += p.net) }));
+    const actual = SNAPS.map(s => ({ x: t(s.date), y: s.total }));
+    const projection = proj.length ? [{ x: t(last.date), y: last.total }, ...proj] : [];
+
+    const allX = [...actual, ...projection].map(p => p.x);
+    const chart = new Chart(el('i2-chart'), {
+        type: 'line',
+        data: { datasets: [
+            { label: 'Total wealth', data: actual, borderColor: C.s1, backgroundColor: C.s1 + '14', fill: true, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: .25 },
+            { label: 'Projected', data: projection, borderColor: C.s1, borderDash: [6, 5], borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: .25, fill: false },
+        ] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'nearest', axis: 'x', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+                title: items => dateLabel(items[0].raw.x),
+                label: i => `${i.dataset.label}: ${ft(i.raw.y)}` } } },
+            scales: {
+                x: { type: 'linear', grid: { display: false }, ticks: { maxTicksLimit: 10, callback: v => new Date(v).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }) } },
+                y: axisMoney,
+            },
+        },
+    });
+    const maxX = Math.max(...allX);
+    function setRange(months) {
+        chart.options.scales.x.min = months ? new Date(last.date).setMonth(new Date(last.date).getMonth() - months) : Math.min(...allX);
+        chart.options.scales.x.max = maxX;
+        chart.update();
+    }
+    el('i2-range').addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        el('i2-range').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        setRange(+b.dataset.r);
+    });
+    setRange(0);
+})();
+
+/* ---------- Breakdown: where the money is ---------- */
+(() => {
+    const groups = {
+        account: () => ACCOUNTS.filter(a => a.forint).map(a => ({ name: a.platform, tag: a.currency + (a.liquid ? '' : ' · locked'), value: a.forint, color: a.liquid ? C.s3 : C.s1 })),
+        liquid: () => [
+            { name: 'Liquid', tag: 'reachable now', value: ACCOUNTS.filter(a => a.liquid).reduce((s, a) => s + a.forint, 0), color: C.s3 },
+            { name: 'Locked', tag: 'pension, insurance, long-term', value: ACCOUNTS.filter(a => !a.liquid).reduce((s, a) => s + a.forint, 0), color: C.s1 },
+        ],
+        currency: () => ['HUF', 'EUR', 'USD'].map((c, i) => ({ name: c, tag: '', value: ACCOUNTS.filter(a => a.currency === c).reduce((s, a) => s + a.forint, 0), color: [C.s1, C.s2, C.s3][i] })).filter(g => g.value),
+    };
+    const legends = {
+        account: [['Liquid', C.s3], ['Locked', C.s1]],
+        liquid: [['Liquid', C.s3], ['Locked', C.s1]],
+        currency: [['HUF', C.s1], ['EUR', C.s2], ['USD', C.s3]],
+    };
+    function render(mode) {
+        const items = groups[mode]().sort((a, b) => b.value - a.value);
+        const total = items.reduce((s, g) => s + g.value, 0) || 1;
+        const max = Math.max(...items.map(g => g.value), 1);
+        // Split bar: by liquidity for accounts, otherwise by the groups themselves
+        const splitItems = mode === 'account' ? groups.liquid() : items;
+        el('i4-split').innerHTML = splitItems.map(g => `<i style="width:${pct(g.value, total)}%;background:${g.color}" title="${g.name}: ${ft(g.value)}"></i>`).join('');
+        el('i4-legend').innerHTML = legends[mode].map(([n, c]) => `<span><i style="background:${c}"></i>${n}</span>`).join('');
+        el('i4-list').innerHTML = items.map(g => `
+            <div class="r">
+                <div style="min-width:0">
+                    <div class="n">${g.name}${g.tag ? `<span class="tag">${g.tag}</span>` : ''}</div>
+                    <div class="hbar"><i data-w="${pct(g.value, max)}" style="background:${g.color}"></i></div>
+                </div>
+                <div class="v">${ft(g.value)}<small>${pct(g.value, total).toFixed(1)}%</small></div>
+            </div>`).join('');
+        requestAnimationFrame(() => setTimeout(() => el('i4-list').querySelectorAll('.hbar i').forEach(i => i.style.width = i.dataset.w + '%'), 30));
+    }
+    el('i4-mode').addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        el('i4-mode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        render(b.dataset.m);
+    });
+    render('account');
+})();
+
+/* ---------- Liquidity runway: liquidity runway ---------- */
+(() => {
+    // Average of the last 6 complete months of actual spending
+    const done = SPENDING.filter(s => s.month < TODAY_M).slice(-6);
+    const avg = done.length ? done.reduce((s, x) => s + x.spent, 0) / done.length : 0;
+    if (!avg) { el('i6-months').textContent = '—'; el('i6-note').textContent = 'No spending recorded yet.'; return; }
+    const months = last.liquid / avg;
+    el('i6-months').innerHTML = (months >= 100 ? '99+' : months.toFixed(1)) + '<small>months</small>';
+    el('i6-months').className = 'big ' + (months < 3 ? 'neg' : months < 6 ? '' : 'pos');
+    // Scale: 0..12 months over the track (3 mo = 25%, 6 mo = 50%)
+    setTimeout(() => el('i6-mark').style.left = Math.min(months / 12 * 100, 100) + '%', 150);
+    el('i6-note').innerHTML = `Liquid <b>${ft(last.liquid)}</b> ÷ average spending <b>${ft(avg)}</b>/month (last ${done.length} complete months).
+        3–6 months is the usual emergency-fund rule of thumb.`;
+})();
+
+/* ---------- Plan vs actual: plan vs actual ---------- */
+(() => {
+    const planBy = Object.fromEntries(PLAN.map(p => [p.month, p.net]));
+    const rows = [];
+    for (let i = 1; i < months.length; i++) {
+        const m = months[i];
+        rows.push({ m, actual: byMonth[m].total - byMonth[months[i - 1]].total, plan: planBy[m] ?? null });
+    }
+    const recent = rows.slice(-12);
+    new Chart(el('i7-chart'), {
+        type: 'bar',
+        data: { labels: recent.map(r => monthLabel(r.m)), datasets: [
+            { label: 'Planned', data: recent.map(r => r.plan), backgroundColor: C.plan, borderRadius: 4, barPercentage: .8, categoryPercentage: .7 },
+            { label: 'Actual change', data: recent.map(r => r.actual), backgroundColor: recent.map(r => r.actual >= 0 ? C.s1 : C.bad), borderRadius: 4, barPercentage: .8, categoryPercentage: .7 },
+        ] },
+        options: {
+            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+                label: i => i.raw == null ? `${i.dataset.label}: no plan` : `${i.dataset.label}: ${signed(i.raw)} Ft`,
+                footer: items => { const r = recent[items[0].dataIndex]; return r.plan == null ? '' : `Difference: ${signed(r.actual - r.plan)} Ft`; } } } },
+            scales: { x: { grid: { display: false } }, y: axisMoney },
+        },
+    });
+})();
+
+/* ---------- Snapshot history: compact history ---------- */
+(() => {
+    el('i9-body').innerHTML = SNAPS.map((s, i) => {
+        const d = i ? s.total - SNAPS[i - 1].total : null;
+        return `<tr>
+            <td>${dateLabel(s.date)}</td>
+            <td><b>${ft(s.total)}</b></td>
+            <td class="${d == null ? 'muted' : cls(d)}">${d == null ? '—' : signed(d) + ' Ft'}</td>
+            <td>${ft(s.liquid)}</td>
+            <td>${pct(s.liquid, s.total).toFixed(0)}%</td>
+            <td>${s.eur_rate ? s.eur_rate.toFixed(2) : '—'}</td>
+        </tr>`;
+    }).reverse().join('');
+})();
+</script>
+{% endif %}
+</body>
+</html>

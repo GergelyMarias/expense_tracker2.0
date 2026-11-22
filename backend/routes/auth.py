@@ -12,17 +12,19 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/", methods=["GET", "POST"])
 def login():
-    """
-    Login page. Redirects to /expenses if already logged in.
-    """
+    """Login page. 'Hide amounts' chosen here blurs money values on every page for this session."""
     if session.get("logged_in"):
-        return redirect("/expenses")
+        return redirect("/dashboard-b")
 
-    if request.method == "POST" and request.form.get("password") == APP_PASSWORD:
-        session["logged_in"] = True
-        return redirect("/expenses")
+    error = None
+    if request.method == "POST":
+        if request.form.get("password") == APP_PASSWORD:
+            session["logged_in"] = True
+            session["hide_amounts"] = request.form.get("hide_amounts") == "on"
+            return redirect("/dashboard-b")
+        error = "Wrong password."
 
-    return render_template("login.html")
+    return render_template("login.html", error=error)
 
 
 @auth_bp.route("/logout")

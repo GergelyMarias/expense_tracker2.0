@@ -2,255 +2,481 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Register Money</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Money Snapshot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f5f6fa; padding: 2em; }
-        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 1000px; margin: auto; }
-        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; }
-        .control-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #7f8c8d; font-size: 0.8rem; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th { background: #40739e; color: white; padding: 12px; font-size: 0.8rem; }
-        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
-        .btn-add { background: #44bd32; color: white; margin-bottom: 1rem; }
-        .btn-save { background: #2f3640; color: white; width: 100%; margin-top: 2rem; }
-        .btn-del { background: #e84118; color: white; padding: 5px 10px; }
-        .forint-cell { font-weight: bold; text-align: right; }
+        :root {
+            --bg: #f4f5f7; --surface: #ffffff; --line: #e6e8ec; --line-soft: #f0f1f4;
+            --text: #1f2430; --text-2: #5b6272; --muted: #9aa1ae; --accent: #40739e; --accent-bg: #eaf0f6;
+            --good: #1f8a5b; --good-bg: #e9f6ef; --bad: #d14343; --bad-bg: #fcecec; --warn: #b87800; --warn-bg: #fdf4e3;
+            --radius: 14px; --shadow: 0 1px 2px rgba(20,30,50,.04), 0 4px 16px rgba(20,30,50,.05);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 1.2rem 2rem 3rem; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); font-variant-numeric: tabular-nums; }
+
+        header {
+            max-width: 1240px; margin: 0 auto 1.4rem; padding: .8rem 1.3rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .brand { font-weight: 800; } .brand span { color: var(--muted); font-weight: 600; margin-left: .3rem; }
+        nav { display: flex; gap: .2rem; flex-wrap: wrap; }
+        nav a { color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .85rem; padding: .45rem .75rem; border-radius: 8px; transition: background .2s, color .2s; }
+        nav a:hover { background: var(--line-soft); color: var(--text); }
+        .wrap { max-width: 1240px; margin: 0 auto; }
+
+        .layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 1.2rem; align-items: start; }
+        .side { display: flex; flex-direction: column; gap: 1.2rem; position: sticky; top: 1rem; }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.2rem 1.3rem; animation: fade .45s ease both; min-width: 0; }
+        @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+        .card h2 { margin: 0 0 .2rem; font-size: .95rem; font-weight: 700; }
+        .why { margin: 0 0 1rem; color: var(--muted); font-size: .8rem; }
+
+        /* ------------------------------ Calendar ------------------------------ */
+        .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
+        .cal-head b { font-size: .95rem; }
+        .cal-nav { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--line-soft); color: var(--text-2); font-size: 1.1rem; cursor: pointer; transition: .2s; }
+        .cal-nav:hover { background: var(--accent); color: #fff; }
+        .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+        .cal .dow { font-size: .68rem; font-weight: 600; color: var(--muted); padding: .2rem 0 .35rem; }
+        .day {
+            position: relative; aspect-ratio: 1; border: none; border-radius: 9px; background: none; font: inherit; font-size: .85rem;
+            color: var(--text); cursor: pointer; transition: background .15s;
+        }
+        .day:hover { background: var(--line-soft); }
+        .day.out { color: #c7ccd4; }
+        .day.today { font-weight: 800; color: var(--accent); }
+        .day.has::after { /* snapshot marker */
+            content: ""; position: absolute; left: 50%; bottom: 5px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--accent);
+        }
+        .day.has { background: var(--accent-bg); font-weight: 700; }
+        .day.sel { background: var(--accent); color: #fff; font-weight: 700; }
+        .day.sel::after { background: #fff; }
+        .cal-foot { display: flex; justify-content: space-between; align-items: center; margin-top: .8rem; font-size: .75rem; color: var(--muted); gap: .5rem; flex-wrap: wrap; }
+        .cal-foot .key { display: inline-flex; align-items: center; gap: .35rem; }
+        .cal-foot .key i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+        .link { background: none; border: none; font: inherit; font-size: .75rem; font-weight: 600; color: var(--accent); cursor: pointer; padding: 0; }
+        .link:hover { text-decoration: underline; }
+        .link:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+
+        /* Month strip: every month of the shown year, marked when it has snapshots */
+        .months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: .9rem; padding-top: .9rem; border-top: 1px solid var(--line-soft); }
+        .mo { border: none; background: none; font: inherit; font-size: .72rem; font-weight: 600; color: var(--muted); padding: .35rem 0; border-radius: 7px; cursor: pointer; }
+        .mo:hover { background: var(--line-soft); }
+        .mo.has { color: var(--accent); background: var(--accent-bg); }
+        .mo.cur { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+        /* ------------------------------ FX ------------------------------ */
+        .fx { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+        .fx .lbl { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+        .fx .val { font-size: 1.35rem; font-weight: 800; margin-top: .15rem; }
+        .fx .val small { font-size: .75rem; font-weight: 600; color: var(--muted); margin-left: .2rem; }
+        .fx input { width: 100%; margin-top: .3rem; }
+        .fx-src { margin-top: .7rem; font-size: .75rem; color: var(--muted); }
+        .fx-src.err { color: var(--bad); }
+
+        /* ------------------------------ Entries ------------------------------ */
+        .top { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .top h2 { margin: 0; font-size: 1.1rem; }
+        .top .state { font-size: .75rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; }
+        .state.existing { background: var(--accent-bg); color: var(--accent); }
+        .state.new { background: var(--warn-bg); color: var(--warn); }
+        .top .right { margin-left: auto; display: flex; gap: .5rem; align-items: center; }
+        .status { font-size: .8rem; color: var(--muted); }
+        .status.err { color: var(--bad); } .status.ok { color: var(--good); }
+
+        .btn { border: none; border-radius: 9px; padding: .6rem 1.1rem; font: inherit; font-weight: 700; font-size: .85rem; cursor: pointer; transition: background .2s, opacity .2s; white-space: nowrap; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: #355f84; }
+        .btn-primary:disabled { background: #d5dbe2; color: #8c95a3; cursor: default; }
+        .btn-ghost { background: #fff; color: var(--text-2); border: 1px solid var(--line); }
+        .btn-ghost:hover { background: var(--line-soft); }
+        .btn-ghost:disabled { opacity: .5; cursor: default; }
+        .btn-danger { background: #fff; color: var(--bad); border: 1px solid #f0c4c4; }
+
+        .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: .9rem 0 1.1rem; margin-bottom: .4rem; border-bottom: 1px solid var(--line); }
+        .totals .lbl { font-size: .75rem; color: var(--text-2); font-weight: 600; }
+        .totals .val { font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em; margin-top: .15rem; white-space: nowrap; }
+        .totals .val small { font-size: .85rem; font-weight: 700; margin-left: .2rem; }
+        .totals .d { font-size: .78rem; margin-top: .1rem; }
+        .pos { color: var(--good); } .neg { color: var(--bad); } .muted { color: var(--muted); }
+
+        table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+        th { text-align: left; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: .6rem .4rem; border-bottom: 1px solid var(--line); }
+        th.r, td.r { text-align: right; }
+        td { padding: .35rem .4rem; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+        tr:hover td { background: #fafbfc; }
+        input, select {
+            width: 100%; padding: .5rem .65rem; border-radius: 8px; font: inherit; font-size: .88rem;
+            background: #fafbfc; color: var(--text); border: 1px solid transparent; transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+        input:hover, select:hover { border-color: var(--line); }
+        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(64,115,158,.12); background: #fff; }
+        input.amt { text-align: right; }
+        tr.dirty td:first-child { box-shadow: inset 3px 0 0 #f1c40f; }
+        .huf { font-weight: 700; white-space: nowrap; }
+        /* Liquid toggle */
+        .toggle { position: relative; display: inline-block; width: 38px; height: 22px; }
+        .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .toggle span { position: absolute; inset: 0; border-radius: 999px; background: #d5dbe2; transition: .2s; cursor: pointer; }
+        .toggle span::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+        .toggle input:checked + span { background: var(--good); }
+        .toggle input:checked + span::before { transform: translateX(16px); }
+        .toggle input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: .3rem .45rem; border-radius: 6px; }
+        .del:hover { color: var(--bad); background: var(--bad-bg); }
+        .empty { color: var(--muted); padding: 2rem 0; text-align: center; font-size: .9rem; }
+        .actions { display: flex; gap: .5rem; margin-top: 1rem; flex-wrap: wrap; }
+
+        @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .side { position: static; } }
+        @media (max-width: 560px) { body { padding: 1rem; } .totals { grid-template-columns: 1fr; } }
+        @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
     </style>
+{% include '_privacy.html' %}
 </head>
 <body>
-<div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>Manage Entries</h1>
-        <a href="{{ url_for('money.money_summary') }}">← Back</a>
-    </div>
 
-    <div class="controls">
-        <div class="control-group">
-            <label>Selected Date</label>
-            <input type="date" id="dateSelector">
-        </div>
-        <div class="control-group">
-            <label>EUR/HUF</label>
-            <input type="number" id="eurRate" value="400">
-        </div>
-        <div class="control-group">
-            <label>USD/HUF</label>
-            <input type="number" id="usdRate" value="330">
-        </div>
-    </div>
+<header>
+    <div class="brand">Finance</div>
+    <nav>
+        <a href="/dashboard-b">🏠 Dashboard</a>
+        <a href="/money-b" class="active">💰 Money</a>
+        <a href="/targets">🎯 Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
 
-    <div style="margin-bottom: 1rem; display: flex; gap: 10px;">
-        <button class="btn btn-add" onclick="addNewRow()">＋ Add New Platform</button>
-        <button id="copyBtn" class="btn" style="background: #f1c40f; color: #2c3e50;" onclick="copyFromPrevious()" disabled>
-            📋 Copy from Previous
-        </button>
-    </div>
+<div class="wrap">
+    <div class="layout">
+        <aside class="side">
+            <section class="card">
+                <h2>Snapshot date</h2>
+                <p class="why">Days with a recorded snapshot are marked.</p>
+                <div class="cal-head">
+                    <button type="button" class="cal-nav" id="calPrev" aria-label="Previous month">‹</button>
+                    <b id="calTitle"></b>
+                    <button type="button" class="cal-nav" id="calNext" aria-label="Next month">›</button>
+                </div>
+                <div class="cal" id="cal" role="grid"></div>
+                <div class="months" id="months"></div>
+                <div class="cal-foot">
+                    <span class="key"><i></i>snapshot recorded</span>
+                    <span>
+                        <button type="button" class="link" id="goLatest">Latest snapshot</button> ·
+                        <button type="button" class="link" id="goToday">Today</button>
+                    </span>
+                </div>
+            </section>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Platform</th>
-                <th>Amount</th>
-                <th>Currency</th>
-                <th>Liquid</th>
-                <th>HUF Value</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="logTableBody"></tbody>
-    </table>
-    <button class="btn btn-save" onclick="saveToDatabase()">💾 SAVE ALL CHANGES</button>
+            <section class="card">
+                <h2>Exchange rates</h2>
+                <p class="why">Fetched automatically for the selected date.</p>
+                <div class="fx">
+                    <div><div class="lbl">EUR / HUF</div><div class="val" id="eurVal">—</div><input type="number" step="0.01" id="eurInput" hidden aria-label="EUR/HUF"></div>
+                    <div><div class="lbl">USD / HUF</div><div class="val" id="usdVal">—</div><input type="number" step="0.01" id="usdInput" hidden aria-label="USD/HUF"></div>
+                </div>
+                <div class="fx-src" id="fxSrc"></div>
+            </section>
+        </aside>
+
+        <main class="card">
+            <div class="top">
+                <h2 id="title"></h2>
+                <span class="state" id="state"></span>
+                <div class="right">
+                    <span class="status" id="status"></span>
+                    <button type="button" class="btn btn-ghost" id="discardBtn" hidden>Discard</button>
+                    <button type="button" class="btn btn-primary" id="saveBtn" disabled>Save snapshot</button>
+                </div>
+            </div>
+
+            <div class="totals">
+                <div><div class="lbl">Total</div><div class="val" id="tTotal">0<small>Ft</small></div><div class="d" id="tDelta"></div></div>
+                <div><div class="lbl">Liquid</div><div class="val" id="tLiquid">0<small>Ft</small></div><div class="d muted" id="tLiquidPct"></div></div>
+                <div><div class="lbl">Locked</div><div class="val" id="tLocked">0<small>Ft</small></div><div class="d muted" id="tCount"></div></div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr><th style="width:36%">Account</th><th class="r" style="width:18%">Amount</th><th style="width:11%">Currency</th><th style="width:9%">Liquid</th><th class="r">HUF value</th><th></th></tr>
+                </thead>
+                <tbody id="rows"></tbody>
+            </table>
+            <div class="empty" id="empty" hidden></div>
+
+            <div class="actions">
+                <button type="button" class="btn btn-ghost" id="addBtn">+ Add account</button>
+                <button type="button" class="btn btn-ghost" id="copyBtn">Copy accounts from latest snapshot</button>
+            </div>
+        </main>
+    </div>
 </div>
 
 <script>
-    const tableBody = document.getElementById('logTableBody');
-    const dateInput = document.getElementById('dateSelector');
-    const eurInput = document.getElementById('eurRate');
-    const usdInput = document.getElementById('usdRate');
-    const copyBtn = document.getElementById('copyBtn');
+const SNAP_DATES = new Set({{ snapshot_dates | tojson }});
+const SORTED_DATES = [...SNAP_DATES].sort();
+const el = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayIso = iso(new Date());
+const fmt = n => { const r = Math.round(n); return (r < 0 ? '-' : '') + Math.abs(r).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
+const longDate = s => new Date(s + 'T00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
 
-    // 1. Initialize Page
-    // Set default date to Today if not already set
-    if (!dateInput.value) {
-        dateInput.value = new Date().toISOString().split('T')[0];
+let selected = new URLSearchParams(location.search).get('date') || SORTED_DATES[SORTED_DATES.length - 1] || todayIso;
+let view = new Date(selected + 'T00:00'); view.setDate(1);
+let rates = { eur: null, usd: null, manual: false, stored: false };
+let original = '[]';   // serialized rows as loaded, to detect unsaved changes
+
+/* ------------------------------ Calendar ------------------------------ */
+function renderCalendar() {
+    const y = view.getFullYear(), m = view.getMonth();
+    el('calTitle').textContent = view.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    const cal = el('cal');
+    cal.innerHTML = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => `<div class="dow">${d}</div>`).join('');
+    const first = new Date(y, m, 1);
+    const start = new Date(y, m, 1 - ((first.getDay() + 6) % 7));   // Monday-based week
+    for (let i = 0; i < 42; i++) {
+        const d = new Date(start); d.setDate(start.getDate() + i);
+        if (i >= 35 && d.getMonth() !== m) break;   // drop a fully empty 6th row
+        const s = iso(d);
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'day' + (d.getMonth() !== m ? ' out' : '') + (SNAP_DATES.has(s) ? ' has' : '') + (s === selected ? ' sel' : '') + (s === todayIso ? ' today' : '');
+        b.textContent = d.getDate();
+        b.setAttribute('aria-label', longDate(s) + (SNAP_DATES.has(s) ? ' — snapshot recorded' : ''));
+        b.addEventListener('click', () => select(s));
+        cal.appendChild(b);
     }
+    // Month strip for the shown year
+    el('months').innerHTML = Array.from({ length: 12 }, (_, i) => {
+        const key = `${y}-${pad(i + 1)}`;
+        const has = SORTED_DATES.some(d => d.startsWith(key));
+        const name = new Date(y, i, 1).toLocaleDateString('en-GB', { month: 'short' });
+        return `<button type="button" class="mo${has ? ' has' : ''}${i === m ? ' cur' : ''}" data-m="${i}" title="${has ? 'Has snapshots' : 'No snapshots'}">${name}</button>`;
+    }).join('');
+}
+el('months').addEventListener('click', e => { const b = e.target.closest('.mo'); if (!b) return; view = new Date(view.getFullYear(), +b.dataset.m, 1); renderCalendar(); });
+el('calPrev').addEventListener('click', () => { view.setMonth(view.getMonth() - 1); renderCalendar(); });
+el('calNext').addEventListener('click', () => { view.setMonth(view.getMonth() + 1); renderCalendar(); });
+el('goToday').addEventListener('click', () => select(todayIso));
+el('goLatest').addEventListener('click', () => SORTED_DATES.length && select(SORTED_DATES[SORTED_DATES.length - 1]));
+el('goLatest').disabled = !SORTED_DATES.length;
 
-    // 2. Event Listeners
-    dateInput.addEventListener('input', fetchEntries);
-    [eurInput, usdInput].forEach(inp => inp.addEventListener('input', updateAllRows));
+function select(s) {
+    if (s !== selected && isDirty() && !confirm('You have unsaved changes. Discard them?')) return;
+    selected = s;
+    view = new Date(s + 'T00:00'); view.setDate(1);
+    history.replaceState(null, '', '?date=' + s);
+    renderCalendar();
+    load();
+}
 
-    /**
-     * Fetches entries for the selected date and manages the "Copy" button state
-     */
-    async function fetchEntries() {
-        let selectedDate = dateInput.value;
-        if (!selectedDate) return;
+/* ------------------------------ Rates ------------------------------ */
+// Existing snapshot: show the rates it was saved with (so totals match what's stored)
+function useStoredRates(eur, usd) {
+    rates = { eur: +eur, usd: +usd, manual: false, stored: true };
+    showRates();
+    el('fxSrc').className = 'fx-src';
+    el('fxSrc').innerHTML = 'Saved with this snapshot · <button type="button" class="link" id="refreshFx">Use Yahoo rate instead</button>';
+    el('refreshFx').addEventListener('click', async () => { await loadRates(); recalc(); });
+}
 
-        // Standardize format for the API request
-        selectedDate = selectedDate.replace(/\./g, '-');
+async function loadRates() {
+    el('fxSrc').className = 'fx-src';
+    el('fxSrc').textContent = 'Loading rates…';
+    el('eurVal').textContent = el('usdVal').textContent = '…';
+    try {
+        const res = await fetch(`/api/fx-rates/${selected}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        rates = { eur: data.eur, usd: data.usd, manual: false, stored: false };
+        showRates();
+        const note = selected > todayIso ? 'latest available close' : (selected === todayIso ? 'today, may still change' : 'closing rate on or before this date');
+        el('fxSrc').textContent = `Yahoo Finance · ${note}`;
+    } catch (err) {
+        // Fallback: let the user type the rates
+        rates = { eur: rates.eur, usd: rates.usd, manual: true, stored: false };
+        showRates();
+        el('fxSrc').className = 'fx-src err';
+        el('fxSrc').textContent = `Couldn't fetch rates (${err.message}). Enter them manually.`;
+    }
+    recalc();
+}
+function showRates() {
+    const two = v => v ? v.toLocaleString('hu-HU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '<small>Ft</small>' : '—';
+    el('eurVal').innerHTML = two(rates.eur); el('usdVal').innerHTML = two(rates.usd);
+    ['eur', 'usd'].forEach(k => {
+        el(k + 'Val').hidden = rates.manual;
+        el(k + 'Input').hidden = !rates.manual;
+        if (rates.manual) el(k + 'Input').value = rates[k] || '';
+    });
+}
+['eur', 'usd'].forEach(k => el(k + 'Input').addEventListener('input', e => { rates[k] = parseFloat(e.target.value) || null; recalc(); }));
 
+/* ------------------------------ Rows ------------------------------ */
+const parseAmt = s => parseFloat(String(s).replace(/\./g, '').replace(',', '.')) || 0;
+const fmtAmt = n => { if (n === '' || n == null) return ''; const [i, d] = String(Math.round(n * 100) / 100).split('.'); return fmt(+i) + (d ? ',' + d : ''); };
+const rateFor = c => c === 'EUR' ? rates.eur : c === 'USD' ? rates.usd : 1;
+
+function addRow(data = {}, focus = false) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" class="plat" placeholder="Account name" aria-label="Account"></td>
+        <td class="r"><input type="text" inputmode="decimal" class="amt" placeholder="0" aria-label="Amount"></td>
+        <td><select class="curr" aria-label="Currency"><option>HUF</option><option>EUR</option><option>USD</option></select></td>
+        <td><label class="toggle" title="Liquid: reachable now"><input type="checkbox" class="liq" aria-label="Liquid"><span></span></label></td>
+        <td class="r huf">0 Ft</td>
+        <td><button type="button" class="del" title="Remove account" aria-label="Remove account">✕</button></td>`;
+    tr.querySelector('.plat').value = (data.platform || '').trim();
+    tr.querySelector('.amt').value = data.amount ? fmtAmt(data.amount) : '';
+    tr.querySelector('.curr').value = data.currency || 'HUF';
+    tr.querySelector('.liq').checked = data.liquid == 1 || data.liquid === true;
+    tr.querySelector('.del').addEventListener('click', () => { tr.remove(); recalc(); });
+    el('rows').appendChild(tr);
+    if (focus) tr.querySelector('.plat').focus();
+    return tr;
+}
+
+function collect() {
+    return [...el('rows').querySelectorAll('tr')].map(tr => ({
+        platform: tr.querySelector('.plat').value.trim(),
+        amount: parseAmt(tr.querySelector('.amt').value),
+        currency: tr.querySelector('.curr').value,
+        liquid: tr.querySelector('.liq').checked ? 1 : 0,
+    }));
+}
+const isDirty = () => JSON.stringify(collect()) !== original;
+
+function recalc() {
+    let total = 0, liquid = 0;
+    const origRows = JSON.parse(original);
+    el('rows').querySelectorAll('tr').forEach((tr, i) => {
+        const amt = parseAmt(tr.querySelector('.amt').value);
+        const cur = tr.querySelector('.curr').value;
+        const r = rateFor(cur);
+        const huf = r ? amt * r : null;
+        tr.querySelector('.huf').textContent = huf == null ? 'no rate' : fmt(huf) + ' Ft';
+        if (huf != null) { total += huf; if (tr.querySelector('.liq').checked) liquid += huf; }
+        const now = { platform: tr.querySelector('.plat').value.trim(), amount: amt, currency: cur, liquid: tr.querySelector('.liq').checked ? 1 : 0 };
+        tr.classList.toggle('dirty', JSON.stringify(now) !== JSON.stringify(origRows[i]));
+    });
+    const n = el('rows').children.length;
+    el('tTotal').innerHTML = fmt(total) + '<small>Ft</small>';
+    el('tLiquid').innerHTML = fmt(liquid) + '<small>Ft</small>';
+    el('tLocked').innerHTML = fmt(total - liquid) + '<small>Ft</small>';
+    el('tLiquidPct').textContent = total ? `${Math.round(liquid / total * 100)}% of total` : '';
+    el('tCount').textContent = `${n} account${n === 1 ? '' : 's'}`;
+
+    // Change vs the previous snapshot before this date
+    const prev = SORTED_DATES.filter(d => d < selected).pop();
+    if (prev && PREV_TOTALS[prev] != null) {
+        const d = total - PREV_TOTALS[prev];
+        el('tDelta').className = 'd ' + (d > 0 ? 'pos' : d < 0 ? 'neg' : 'muted');
+        el('tDelta').textContent = `${d > 0 ? '+' : ''}${fmt(d)} Ft vs ${new Date(prev + 'T00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    } else { el('tDelta').textContent = ''; }
+
+    el('empty').hidden = n > 0;
+    el('empty').textContent = SNAP_DATES.has(selected) ? 'All accounts removed — saving will delete this snapshot.' : 'No snapshot on this date yet. Copy the accounts from the latest snapshot or add them one by one.';
+    const dirty = isDirty();
+    el('saveBtn').disabled = !dirty;
+    el('discardBtn').hidden = !dirty;
+    el('copyBtn').disabled = n > 0 || !SORTED_DATES.length;
+}
+el('rows').addEventListener('input', e => {
+    if (e.target.classList.contains('amt')) {
+        // keep digits, one comma for decimals; show dot thousand separators while typing
+        const raw = e.target.value.replace(/[^\d,]/g, '').replace(/,(?=.*,)/g, '');
+        const [i, d] = raw.split(',');
+        e.target.value = (i ? fmt(+i) : (d !== undefined ? '0' : '')) + (d !== undefined ? ',' + d.slice(0, 2) : '');
+    }
+    recalc();
+});
+el('rows').addEventListener('change', recalc);
+
+/* ------------------------------ Load / save ------------------------------ */
+const PREV_TOTALS = {};   // date -> total HUF, filled lazily for the "vs previous" figure
+async function loadPrevTotal() {
+    const prev = SORTED_DATES.filter(d => d < selected).pop();
+    if (!prev || PREV_TOTALS[prev] != null) return;
+    try {
+        const rows = await (await fetch(`/api/money-logs/${prev}`)).json();
+        PREV_TOTALS[prev] = rows.reduce((s, r) => s + (+r.amount || 0) * (r.currency === 'EUR' ? +r.eur_rate : r.currency === 'USD' ? +r.usd_rate : 1), 0);
+    } catch (_) {}
+}
+
+async function load() {
+    el('title').textContent = longDate(selected);
+    const exists = SNAP_DATES.has(selected);
+    el('state').className = 'state ' + (exists ? 'existing' : 'new');
+    el('state').textContent = exists ? 'Recorded snapshot' : 'New snapshot';
+    el('status').textContent = '';
+    el('rows').innerHTML = '';
+    original = '[]';
+    let stored = null;
+    if (exists) {
         try {
-            const response = await fetch(`/api/money-logs/${selectedDate}`);
-            const data = await response.json();
-            
-            tableBody.innerHTML = '';
-
-            if (data && data.length > 0) {
-                // If data exists, populate table and disable Copy button
-                eurInput.value = data[0].eur_rate;
-                usdInput.value = data[0].usd_rate;
-                data.forEach(row => addNewRow(row));
-                
-                toggleCopyButton(false);
-            } else {
-                // If date is empty, enable Copy button
-                toggleCopyButton(true);
-            }
-        } catch (err) {
-            console.error("Fetch error:", err);
-            tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red">Error loading data</td></tr>';
-        }
+            const data = await (await fetch(`/api/money-logs/${selected}`)).json();
+            if (data.length && data[0].eur_rate && data[0].usd_rate) stored = [data[0].eur_rate, data[0].usd_rate];
+            data.sort((a, b) => (b.liquid - a.liquid) || a.platform.localeCompare(b.platform, 'hu')).forEach(r => addRow(r));
+        } catch (err) { setStatus('Could not load this snapshot.', 'err'); }
     }
+    original = JSON.stringify(collect());
+    if (stored) useStoredRates(...stored);
+    await Promise.all([stored ? null : loadRates(), loadPrevTotal()]);
+    recalc();
+}
 
-    /**
-     * Logic to clone the structure of the most recent entries in the DB
-     */
-    async function copyFromPrevious() {
-        try {
-            const response = await fetch('/api/money-logs/latest');
-            const data = await response.json();
+function setStatus(msg, kind = '') { el('status').className = 'status ' + kind; el('status').textContent = msg; }
 
-            if (!data || data.length === 0) {
-                alert("No previous logs found to copy from!");
-                return;
-            }
+el('addBtn').addEventListener('click', () => { addRow({}, true); recalc(); });
+el('copyBtn').addEventListener('click', async () => {
+    try {
+        const data = await (await fetch('/api/money-logs/latest')).json();
+        if (!data.length) return setStatus('No previous snapshot to copy.', 'err');
+        // Same accounts, empty amounts: type in today's balances
+        data.sort((a, b) => (b.liquid - a.liquid) || a.platform.localeCompare(b.platform, 'hu'))
+            .forEach(r => addRow({ platform: r.platform, currency: r.currency, liquid: r.liquid }));
+        recalc();
+        el('rows').querySelector('.amt')?.focus();
+        setStatus(`Copied ${data.length} accounts — enter the amounts, then Save.`);
+    } catch (_) { setStatus('Copy failed.', 'err'); }
+});
+el('discardBtn').addEventListener('click', () => { if (confirm('Discard unsaved changes?')) { original = '[]'; load(); } });
 
-            // Populate the UI with previous platforms but reset amounts to 0
-            data.forEach(row => {
-                addNewRow({
-                    platform: row.platform,
-                    amount: 0, 
-                    currency: row.currency,
-                    liquid: row.liquid
-                });
-            });
-
-            // Bring over the rates used in that previous log as well
-            eurInput.value = data[0].eur_rate;
-            usdInput.value = data[0].usd_rate;
-            
-            // Disable button after use to prevent double-pasting
-            toggleCopyButton(false);
-            
-        } catch (err) {
-            console.error("Copy error:", err);
-            alert("Error copying data from previous entry.");
-        }
-    }
-
-    /**
-     * Adds a row to the table and triggers calculation
-     */
-    function addNewRow(data = {}) {
-        const tr = document.createElement('tr');
-        // Handle both numeric 0/1 and boolean for liquid checkbox
-        const isLiquid = data.liquid == 1 || data.liquid === true;
-        
-        tr.innerHTML = `
-            <td><input type="text" class="plat" value="${data.platform || ''}" placeholder="Platform name"></td>
-            <td><input type="number" class="amt" value="${data.amount || 0}" oninput="calcRow(this)"></td>
-            <td>
-                <select class="curr" onchange="calcRow(this)">
-                    <option value="HUF" ${data.currency=='HUF'?'selected':''}>HUF</option>
-                    <option value="EUR" ${data.currency=='EUR'?'selected':''}>EUR</option>
-                    <option value="USD" ${data.currency=='USD'?'selected':''}>USD</option>
-                </select>
-            </td>
-            <td style="text-align:center"><input type="checkbox" class="liq" ${isLiquid ? 'checked' : ''}></td>
-            <td class="forint-cell">0 Ft</td>
-            <td><button class="btn btn-del" onclick="this.closest('tr').remove(); checkEmptyState();">✕</button></td>
-        `;
-        tableBody.appendChild(tr);
-        calcRow(tr.querySelector('.amt'));
-    }
-
-    /**
-     * Calculates the HUF value for a single row based on current rates
-     */
-    function calcRow(el) {
-        const row = el.closest('tr');
-        const amt = parseFloat(row.querySelector('.amt').value) || 0;
-        const cur = row.querySelector('.curr').value;
-        const eur = parseFloat(eurInput.value) || 1;
-        const usd = parseFloat(usdInput.value) || 1;
-
-        let res = amt;
-        if(cur === 'EUR') res = amt * eur;
-        if(cur === 'USD') res = amt * usd;
-
-        row.querySelector('.forint-cell').innerText = Math.round(res).toLocaleString('hu-HU') + ' Ft';
-    }
-
-    function updateAllRows() { 
-        document.querySelectorAll('.amt').forEach(el => calcRow(el)); 
-    }
-
-    /**
-     * Sends current table state to the server
-     */
-    async function saveToDatabase() {
-        const rows = Array.from(document.querySelectorAll('#logTableBody tr')).map(tr => ({
-            platform: tr.querySelector('.plat').value,
-            amount: tr.querySelector('.amt').value,
-            currency: tr.querySelector('.curr').value,
-            liquid: tr.querySelector('.liq').checked ? 1 : 0
-        }));
-
-        if (rows.length === 0) {
-            if (!confirm("Table is empty. Saving will delete all entries for this date. Continue?")) return;
-        }
-
-        const response = await fetch('/api/money-logs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                date: dateInput.value, 
-                eur_rate: eurInput.value, 
-                usd_rate: usdInput.value, 
-                rows 
-            })
+el('saveBtn').addEventListener('click', async () => {
+    const rows = collect().filter(r => r.platform || r.amount);
+    if (rows.some(r => !r.platform)) return setStatus('Every account needs a name.', 'err');
+    if (!rows.length && !confirm('No accounts left. Saving will delete the snapshot for this date. Continue?')) return;
+    if (rates.manual && rows.some(r => r.currency !== 'HUF') && !(rates.eur && rates.usd)) return setStatus('Enter both exchange rates first.', 'err');
+    el('saveBtn').disabled = true;
+    setStatus('Saving…');
+    try {
+        const res = await fetch('/api/money-logs', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: selected, eur_rate: rates.eur, usd_rate: rates.usd, keep_rates: rates.stored || rates.manual, rows }),
         });
-
-        if (response.ok) {
-            alert('Data saved successfully!');
-            fetchEntries(); // Refresh to ensure button states and UI are synced
-        } else {
-            alert('Failed to save data. Check server logs.');
-        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.status !== 'success') throw new Error(data.message || res.status);
+        rows.length ? SNAP_DATES.add(selected) : SNAP_DATES.delete(selected);
+        SORTED_DATES.splice(0, SORTED_DATES.length, ...[...SNAP_DATES].sort());
+        original = '[]';
+        await load();
+        renderCalendar();
+        setStatus('Saved ✓', 'ok');
+    } catch (err) {
+        setStatus('Save failed: ' + err.message, 'err');
+        el('saveBtn').disabled = false;
     }
+});
 
-    /**
-     * UI Helper to handle the Copy button appearance
-     */
-    function toggleCopyButton(enabled) {
-        if (!copyBtn) return;
-        copyBtn.disabled = !enabled;
-        copyBtn.style.opacity = enabled ? "1" : "0.5";
-        copyBtn.style.cursor = enabled ? "pointer" : "not-allowed";
-    }
+window.addEventListener('beforeunload', e => { if (isDirty()) { e.preventDefault(); e.returnValue = ''; } });
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (!el('saveBtn').disabled) el('saveBtn').click(); } });
 
-    /**
-     * Simple check if table was manually cleared
-     */
-    function checkEmptyState() {
-        if (tableBody.children.length === 0) {
-            toggleCopyButton(true);
-        }
-    }
-
-    // Run initial fetch on page load
-    fetchEntries();
+renderCalendar();
+load();
 </script>
 </body>
 </html>

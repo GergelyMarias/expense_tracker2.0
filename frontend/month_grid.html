@@ -4,91 +4,124 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ page.title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f6fa; padding: 2em; color: #2f3640; margin: 0; }
-        header {
-            background: #40739e; color: white; padding: 1rem 2rem;
-            border-radius: 12px; display: flex; justify-content: space-between;
-            align-items: center; max-width: 1200px; margin: 0 auto 1.5rem auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        :root {
+            --bg: #f4f5f7; --surface: #ffffff; --line: #e6e8ec; --line-soft: #f0f1f4;
+            --text: #1f2430; --text-2: #5b6272; --muted: #9aa1ae; --accent: #40739e; --accent-bg: #eaf0f6;
+            --good: #1f8a5b; --bad: #d14343; --bad-bg: #fcecec; --dirty: #fff6d6;
+            --radius: 14px; --shadow: 0 1px 2px rgba(20,30,50,.04), 0 4px 16px rgba(20,30,50,.05);
         }
-        header h1 { font-size: 1.2rem; margin: 0; }
-        header nav a { color: white; text-decoration: none; font-weight: bold; margin-left: 20px; font-size: 0.9rem; }
-        .container { max-width: 1400px; margin: auto; }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 1.2rem 2rem 3rem; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); font-variant-numeric: tabular-nums; }
+        [hidden] { display: none !important; }
 
-        .toolbar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .toolbar .right { margin-left: auto; display: flex; align-items: center; gap: 0.8rem; }
-        .toggle { display: inline-flex; background: #dcdde1; border-radius: 8px; padding: 3px; }
-        .toggle button { border: none; background: transparent; padding: 0.55em 1.3em; border-radius: 6px; font-weight: 600; font-family: inherit; cursor: pointer; color: #2f3640; }
-        .toggle button.active { background: #40739e; color: white; }
-        .toggle button:disabled { color: #95a5a6; cursor: not-allowed; }
-        select { padding: 0.5em 0.8em; border: 1px solid #dcdde1; border-radius: 6px; font-family: inherit; font-size: 0.95rem; background: white; }
-        .status { font-size: 0.85rem; color: #7f8c8d; }
-        .status.err { color: #e84118; }
-        .btn-save { padding: 0.6em 1.6em; border: none; border-radius: 8px; background: #44bd32; color: white; font-weight: 700; font-family: inherit; cursor: pointer; }
-        .btn-discard { padding: 0.6em 1.2em; border: 1px solid #e84118; border-radius: 8px; background: white; color: #e84118; font-weight: 700; font-family: inherit; cursor: pointer; }
-        .btn-discard[hidden] { display: none; }
-        .btn-save:disabled { background: #dcdde1; color: #7f8c8d; cursor: default; }
+        /* ------------------------------ Header ------------------------------ */
+        header {
+            max-width: 1240px; margin: 0 auto 1.4rem; padding: .8rem 1.3rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .brand { font-weight: 800; } .brand span { color: var(--muted); font-weight: 600; margin-left: .3rem; }
+        nav { display: flex; gap: .2rem; flex-wrap: wrap; }
+        nav a { color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .85rem; padding: .45rem .75rem; border-radius: 8px; transition: background .2s, color .2s; }
+        nav a:hover { background: var(--line-soft); color: var(--text); }
+        nav a.active { background: var(--accent-bg); color: var(--accent); }
+        .container { max-width: 1240px; margin: 0 auto; }
 
-        .table-card { background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        /* ------------------------------ Toolbar ------------------------------ */
+        .toolbar { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+        .toolbar h1 { font-size: 1.25rem; font-weight: 800; margin: 0 .6rem 0 0; }
+        .toolbar .right { margin-left: auto; display: flex; align-items: center; gap: .6rem; }
+        .toggle { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; box-shadow: var(--shadow); }
+        .toggle button { border: none; background: transparent; padding: .45rem 1.1rem; border-radius: 7px; font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; color: var(--text-2); transition: background .2s, color .2s; }
+        .toggle button:hover { color: var(--text); }
+        .toggle button.active { background: var(--accent); color: #fff; }
+        select { padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: .9rem; font-weight: 600; background: var(--surface); color: var(--text); box-shadow: var(--shadow); cursor: pointer; }
+        select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(64,115,158,.12); }
+        .status { font-size: .8rem; color: var(--muted); }
+        .status.err { color: var(--bad); }
+        .btn-save, .btn-discard, .btn-copy, .add-row button {
+            border-radius: 9px; padding: .55rem 1.1rem; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; transition: background .2s, opacity .2s; white-space: nowrap;
+        }
+        .btn-save { border: none; background: var(--accent); color: #fff; }
+        .btn-save:hover { background: #355f84; }
+        .btn-save:disabled { background: #d5dbe2; color: #8c95a3; cursor: default; }
+        .btn-discard { border: 1px solid var(--line); background: var(--surface); color: var(--text-2); }
+        .btn-discard:hover { background: var(--bad-bg); color: var(--bad); border-color: #f0c4c4; }
+        .btn-copy { border: 1px solid var(--line); background: var(--surface); color: var(--accent); }
+        .btn-copy:hover { background: var(--accent-bg); }
+        .btn-copy:disabled { opacity: .6; cursor: default; }
+
+        /* ------------------------------ Cards ------------------------------ */
+        .table-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.2rem 1.3rem; animation: fade .45s ease both; }
+        @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+        .chart-title { font-size: .95rem; font-weight: 700; margin: 0 0 .8rem; }
+
+        /* ------------------------------ Monthly table ------------------------------ */
         /* Scroll area has no padding, so nothing can show to the left of the sticky column */
         .scroll { overflow-x: auto; }
-        table { border-collapse: separate; border-spacing: 0; font-size: 0.88rem; width: 100%; }
-        th { background: #40739e; color: white; padding: 10px 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
-        td { border-bottom: 1px solid #ecf0f1; padding: 2px 4px; white-space: nowrap; background: white; }
+        .scroll-top { overflow-x: auto; overflow-y: hidden; height: 12px; margin-bottom: 4px; }
+        .scroll-top > div { height: 1px; }
+        table { border-collapse: separate; border-spacing: 0; font-size: .86rem; width: 100%; }
+        th { background: var(--surface); color: var(--muted); padding: .6rem .5rem; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; text-align: right; border-bottom: 1px solid var(--line); }
+        td { border-bottom: 1px solid var(--line-soft); padding: 2px 3px; white-space: nowrap; background: var(--surface); }
+        tbody tr:hover td { background: #fafbfc; }
 
-        /* Sticky category column: opaque, above scrolled cells, with a divider edge */
-        th:first-child, td:first-child {
-            position: sticky; left: 0; z-index: 2; text-align: left;
-            box-shadow: 2px 0 0 #dcdde1; padding-right: 14px;
-        }
-        th:first-child { background: #40739e; z-index: 3; }
+        /* Sticky label column: opaque, above scrolled cells, with a divider edge */
+        th:first-child, td:first-child { position: sticky; left: 0; z-index: 2; text-align: left; box-shadow: 1px 0 0 var(--line); padding-left: .6rem; padding-right: 1rem; }
+        th:first-child { z-index: 3; }
         td:first-child { font-weight: 600; }
 
-        tr.sum-row td { font-weight: 700; background: #eef3f8; border-bottom: 2px solid #40739e; }
+        /* Sum row: the column totals, light accent band */
+        tr.sum-row td { font-weight: 800; background: var(--accent-bg); color: var(--accent); border-bottom: 1px solid #d5e1ec; }
+        tr.sum-row td:first-child { text-transform: uppercase; font-size: .72rem; letter-spacing: .06em; }
 
-        td input { width: 105px; padding: 6px; border: 1px solid transparent; border-radius: 4px; text-align: right; font-family: inherit; font-size: inherit; background: transparent; font-variant-numeric: tabular-nums; }
-        td input:hover { border-color: #dcdde1; }
-        td input:focus { outline: none; border-color: #40739e; background: #f5f9fc; }
-        td input.dirty { background: #fff6d6; border-color: #f1c40f; }
-        .num { text-align: right; font-variant-numeric: tabular-nums; padding: 6px 8px; }
-        .total-col { font-weight: 700; background: #f5f6fa; }
-        tr.new td:first-child { color: #44bd32; }
+        td input { width: 100px; padding: .42rem .5rem; border: 1px solid transparent; border-radius: 7px; text-align: right; font: inherit; background: transparent; color: var(--text); transition: border-color .15s, background .15s, box-shadow .15s; }
+        td input:hover { border-color: var(--line); background: #fafbfc; }
+        td input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(64,115,158,.12); }
+        td input.dirty { background: var(--dirty); border-color: #f1c40f; }
+        .num { text-align: right; padding: .5rem .6rem; }
+        .total-col { font-weight: 800; background: #fafbfc; }
+        tbody tr:hover td.total-col { background: #f3f5f8; }
+        tr.new td:first-child { color: var(--good); }
 
-        .add-row { display: flex; gap: 0.5rem; margin-top: 1rem; }
-        .add-row input { padding: 8px 10px; border: 1px solid #dcdde1; border-radius: 6px; font-family: inherit; width: 240px; }
-        .add-row button { padding: 8px 16px; border: none; border-radius: 6px; background: #40739e; color: white; font-weight: 600; cursor: pointer; }
-        [hidden] { display: none !important; }
-        /* Mirrored scrollbar above a horizontally scrollable area */
-        .scroll-top { overflow-x: auto; overflow-y: hidden; height: 14px; margin-bottom: 4px; }
-        .scroll-top > div { height: 1px; }
-        .chart-title { font-size: 1rem; margin: 0 0 0.6rem 0; }
-        .legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; font-size: 0.8rem; color: #2f3640; margin-bottom: 0.8rem; }
-        .legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+        .add-row { display: flex; gap: .5rem; margin-top: 1rem; }
+        .add-row input { padding: .55rem .8rem; border: 1px solid var(--line); border-radius: 9px; font: inherit; font-size: .88rem; width: 260px; background: #fafbfc; }
+        .add-row input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(64,115,158,.12); }
+        .add-row button { border: 1px solid var(--line); background: var(--surface); color: var(--accent); }
+        .add-row button:hover { background: var(--accent-bg); }
+
+        /* ------------------------------ Annual chart ------------------------------ */
+        .legend { display: flex; flex-wrap: wrap; gap: .4rem 1rem; font-size: .78rem; color: var(--text-2); margin-bottom: .8rem; }
+        .legend span { display: inline-flex; align-items: center; gap: .35rem; }
         .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
         .chart-box { height: 460px; position: relative; }
-        .empty { color: #7f8c8d; padding: 1rem 0.5rem; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
-        .btn-copy { padding: 0.55em 1.2em; border: none; border-radius: 8px; background: #f1c40f; color: #2c3e50; font-weight: 700; font-family: inherit; cursor: pointer; }
-        .btn-copy:disabled { opacity: 0.6; cursor: default; }
+        .empty { color: var(--muted); padding: 1.2rem .5rem; display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; font-size: .9rem; }
+
+        @media (max-width: 700px) { body { padding: 1rem; } .toolbar .right { margin-left: 0; width: 100%; justify-content: flex-end; } }
+        @media (prefers-reduced-motion: reduce) { .table-card { animation: none; } }
     </style>
+{% include '_privacy.html' %}
 </head>
 <body>
 
 <header>
-    <h1>{{ page.title }}</h1>
+    <div class="brand">Finance</div>
     <nav>
-        <a href="/">🏠 Dashboard</a>
-        <a href="/money">💰 Money</a>
-        <a href="/targets">🎯 Targets</a>
-        <a href="/cashflow">💸 CashFlow</a>
-        <a href="/database">⚙️ Database</a>
+        <a href="/dashboard-b">🏠 Dashboard</a>
+        <a href="/money-b">💰 Money</a>
+        <a href="/targets"{% if page_url == '/targets' %} class="active"{% endif %}>🎯 Targets</a>
+        <a href="/cashflow"{% if page_url == '/cashflow' %} class="active"{% endif %}>💸 CashFlow</a>
+        <a href="/settings">⚙️ Settings</a>
         <a href="/logout">🚪 Logout</a>
     </nav>
 </header>
 
 <div class="container">
     <div class="toolbar">
+        <h1>{{ page.title }}</h1>
         <div class="toggle">
             <button type="button" data-view="annual">Annually</button>
             <button type="button" data-view="monthly">Monthly</button>
@@ -164,6 +197,8 @@
 </div>
 
 <script>
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#5b6272';
 const YEAR = {{ year }};
 // Whole forints with dot thousand separators: 12.345.678
 const API = '{{ api_url }}';
@@ -399,7 +434,7 @@ const capLabels = {
         const pos = opts.positives || [];
         ctx.save();
         ctx.font = '600 12px Inter, sans-serif';
-        ctx.fillStyle = '#2f3640';
+        ctx.fillStyle = '#1f2430';
         ctx.textAlign = 'center';
         chart.data.labels.forEach((_, i) => {
             const el = chart.getDatasetMeta(0).data[i];
@@ -490,7 +525,7 @@ function drawAnnual() {
                 x: { stacked: true, grid: { display: false } },
                 y: {
                     stacked: true, beginAtZero: true,
-                    grid: { color: '#ecf0f1' }, border: { display: false },
+                    grid: { color: '#eef0f3' }, border: { display: false },
                     ticks: { callback: v => Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString('hu-HU') + 'M' : fmt(v) }
                 }
             }

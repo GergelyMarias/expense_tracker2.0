@@ -1,146 +1,177 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Edit Expense Record</title>
-  <style>
-    /* --- Styles aligned with Finance Application --- */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: #f5f6fa; padding: 2em; color: #2f3640; }
-    
-    .container { max-width: 800px; margin: 0 auto; }
-    
-    header { 
-        background: #832414; color: white; padding: 1.5rem; 
-        border-radius: 12px; margin-bottom: 2rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        display: flex; align-items: center; gap: 12px;
-    }
-    header h1 { font-size: 1.2rem; margin: 0; }
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edit Expense</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f5f7; --surface: #ffffff; --line: #e6e8ec; --line-soft: #f0f1f4;
+            --text: #1f2430; --text-2: #5b6272; --muted: #9aa1ae; --accent: #40739e; --accent-bg: #eaf0f6;
+            --bad: #d14343; --bad-bg: #fcecec; --warn: #b87800; --warn-bg: #fdf4e3;
+            --radius: 14px; --shadow: 0 1px 2px rgba(20,30,50,.04), 0 4px 16px rgba(20,30,50,.05);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 1.2rem 2rem 3rem; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); font-variant-numeric: tabular-nums; }
 
-    .card { 
-        background: white; padding: 2rem; border-radius: 12px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-        border-left: 5px solid #832414;
-    }
+        header {
+            max-width: 1240px; margin: 0 auto 1.4rem; padding: .8rem 1.3rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+        }
+        .brand { font-weight: 800; } .brand span { color: var(--muted); font-weight: 600; margin-left: .3rem; }
+        nav { display: flex; gap: .2rem; flex-wrap: wrap; }
+        nav a { color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .85rem; padding: .45rem .75rem; border-radius: 8px; transition: background .2s, color .2s; }
+        nav a:hover { background: var(--line-soft); color: var(--text); }
+        nav a.active { background: var(--accent-bg); color: var(--accent); }
 
-    /* --- Form Styling --- */
-    .form-group { margin-bottom: 1.5rem; }
-    label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #7f8c8d; }
-    
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 1.5rem; }
-    
-    input, select { 
-        width: 100%; padding: 10px 15px; border: 1px solid #dcdde1; 
-        border-radius: 8px; font-size: 0.95rem; transition: 0.2s;
-    }
-    
-    input:focus, select:focus { 
-        outline: none; border-color: #40739e; 
-        box-shadow: 0 0 0 3px rgba(64, 115, 158, 0.1); 
-    }
+        .wrap { max-width: 620px; margin: 0 auto; }
+        .back { display: inline-flex; align-items: center; gap: .3rem; font-size: .85rem; font-weight: 600; color: var(--text-2); text-decoration: none; margin-bottom: .8rem; }
+        .back:hover { color: var(--accent); }
 
-    .actions { display: flex; gap: 12px; align-items: center; margin-top: 2rem; }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.5rem 1.6rem; animation: fade .45s ease both; }
+        @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+        h1 { font-size: 1.2rem; font-weight: 800; margin: 0 0 .2rem; }
+        .sub { color: var(--muted); font-size: .85rem; margin: 0 0 1.4rem; }
 
-    .btn { 
-        padding: 10px 25px; border-radius: 8px; border: none; 
-        cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s; 
-    }
-    .btn-save { background: #40739e; color: white; }
-    .btn-save:hover { background: #345f83; transform: translateY(-1px); }
-    
-    .btn-cancel { 
-        background: #f1f2f6; color: #7f8c8d; text-decoration: none; 
-        display: inline-block; text-align: center; padding: 10px 25px;
-        border-radius: 8px;
-    }
-    .btn-cancel:hover { background: #e1e2e6; color: #2f3640; }
+        .field { margin-bottom: 1rem; }
+        .row { display: grid; grid-template-columns: 2fr 1fr; gap: .8rem; }
+        label { display: block; font-size: .75rem; font-weight: 600; color: var(--text-2); margin-bottom: .35rem; }
+        input, select {
+            width: 100%; padding: .7rem .85rem; border-radius: 10px; font: inherit; font-size: .92rem;
+            background: #fafbfc; color: var(--text); border: 1px solid var(--line); transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(64,115,158,.12); }
+        input.amt { text-align: right; font-weight: 700; }
+        .hint { font-size: .75rem; color: var(--muted); margin-top: .35rem; }
+        .hint.warn { color: var(--warn); }
+        .huf { font-size: .8rem; color: var(--text-2); margin-top: .35rem; text-align: right; }
 
-    @media (max-width: 600px) {
-        .form-row { grid-template-columns: 1fr; }
-    }
-  </style>
+        .actions { display: flex; gap: .6rem; align-items: center; margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid var(--line-soft); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; padding: .7rem 1.3rem; font: inherit; font-weight: 700; font-size: .9rem; cursor: pointer; text-decoration: none; transition: background .2s; border: none; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: #355f84; }
+        .btn-ghost { background: #fff; color: var(--text-2); border: 1px solid var(--line); }
+        .btn-ghost:hover { background: var(--line-soft); }
+        .btn-danger { margin-left: auto; background: #fff; color: var(--bad); border: 1px solid #f0c4c4; }
+        .btn-danger:hover { background: var(--bad-bg); }
+
+        @media (max-width: 560px) { body { padding: 1rem; } .row { grid-template-columns: 1fr; } .actions { flex-wrap: wrap; } .btn-danger { margin-left: 0; } }
+        @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+    </style>
+{% include '_privacy.html' %}
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>✏️ Edit Expense Record</h1>
-    </header>
+<header>
+    <div class="brand">Finance</div>
+    <nav>
+        <a href="/dashboard-b" class="active">🏠 Dashboard</a>
+        <a href="/money-b">💰 Money</a>
+        <a href="/targets">🎯 Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
 
-    <div class="card">
-        <form method="POST" action="/expense/edit/{{ expense.id }}?month={{ month }}&year={{ year }}">
-            <div class="form-group">
-                <label>Date</label>
-                <input type="date" name="date" id="edit-date" value="{{ expense.date }}" required>
+<div class="wrap">
+    <a class="back" href="{{ back_url }}">‹ Back to Dashboard</a>
+
+    <section class="card">
+        <h1>Edit expense</h1>
+        <p class="sub">Recorded on {{ expense.date }} · {{ "{:,.0f}".format(expense.forint or 0).replace(",", ".") }} Ft</p>
+
+        <form method="POST" id="editForm">
+            <div class="field">
+                <label for="description">Description</label>
+                <input type="text" name="description" id="description" value="{{ expense.description }}" required maxlength="200">
             </div>
 
-            <div class="form-group">
-                <label>Description</label>
-                <input type="text" name="description" value="{{ expense.description }}" required>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Amount</label>
-                    <input type="number" step="0.01" name="amount" value="{{ expense.amount }}" required>
+            <div class="row">
+                <div class="field">
+                    <label for="amount">Amount</label>
+                    <input type="number" step="0.01" name="amount" id="amount" class="amt" value="{{ '%g' % expense.amount if expense.amount is not none else '' }}" required>
+                    <div class="huf" id="hufNote"></div>
                 </div>
-                <div class="form-group">
-                    <label>Currency</label>
-                    <select name="currency">
-                        <option value="HUF" {% if expense.currency == 'HUF' %}selected{% endif %}>HUF</option>
-                        <option value="EUR" {% if expense.currency == 'EUR' %}selected{% endif %}>EUR</option>
-                        <option value="USD" {% if expense.currency == 'USD' %}selected{% endif %}>USD</option>
+                <div class="field">
+                    <label for="currency">Currency</label>
+                    <select name="currency" id="currency">
+                        {% for c in ['HUF', 'EUR', 'USD'] %}
+                        <option value="{{ c }}" {% if expense.currency == c %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Category</label>
-                <select name="category" id="edit-category" required></select>
+            <div class="row">
+                <div class="field">
+                    <label for="category">Category</label>
+                    <select name="category" id="category" required></select>
+                    <div class="hint" id="catHint"></div>
+                </div>
+                <div class="field">
+                    <label for="date">Date</label>
+                    <input type="date" name="date" id="date" value="{{ expense.date }}" required>
+                </div>
             </div>
 
             <div class="actions">
-                <button type="submit" class="btn btn-save">Update Entry</button>
-                <a href="/expenses?month={{ month }}&year={{ year }}" class="btn btn-cancel">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save changes</button>
+                <a href="{{ back_url }}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-danger" form="deleteForm">Delete</button>
             </div>
         </form>
-    </div>
+        <form method="POST" id="deleteForm" action="/expense/delete/{{ expense.id }}?month={{ month }}&year={{ year }}&back={{ back }}"></form>
+    </section>
 </div>
 
 <script>
-    const editDateInput = document.getElementById("edit-date");
-    const editCategorySelect = document.getElementById("edit-category");
-    const currentCategory = "{{ expense.category }}";
+    const dateInput = document.getElementById('date');
+    const select = document.getElementById('category');
+    const hint = document.getElementById('catHint');
+    const current = {{ expense.category | tojson }};
+    const origCurrency = {{ expense.currency | tojson }};
+    const origAmount = {{ (expense.amount or 0) | float }};
+    const origForint = {{ (expense.forint or 0) | float }};
 
-    async function loadCategoriesForEdit(dateStr) {
-        const month = dateStr.slice(0, 7);
-        const res = await fetch(`/api/categories/${month}`);
-        const data = await res.json();
-
-        editCategorySelect.innerHTML = "";
-        if (!data.has_targets) {
-            editCategorySelect.disabled = true;
-            editCategorySelect.innerHTML = "<option>No targets found</option>";
-            return;
-        }
-
-        editCategorySelect.disabled = false;
-        data.categories.forEach(cat => {
-            const opt = document.createElement("option");
-            opt.value = cat;
-            opt.textContent = cat;
-            if (cat === currentCategory) opt.selected = true;
-            editCategorySelect.appendChild(opt);
-        });
+    // Categories come from the targets of the chosen month (A→Z, Hungarian order).
+    // The expense's current category is always kept, so saving never changes it silently.
+    async function loadCategories() {
+        const month = dateInput.value.slice(0, 7);
+        const chosen = select.value || current;
+        let cats = [];
+        try {
+            const data = await (await fetch(`/api/categories/${month}`)).json();
+            cats = data.categories || [];
+        } catch (_) {}
+        const list = [...new Set(cats)].sort((a, b) => a.localeCompare(b, 'hu', { sensitivity: 'base' }));
+        const missing = chosen && !list.includes(chosen);
+        if (missing) list.unshift(chosen);
+        select.innerHTML = '';
+        list.forEach(c => select.add(new Option(c, c, false, c === chosen)));
+        hint.className = 'hint' + (missing ? ' warn' : '');
+        hint.textContent = missing ? `"${chosen}" has no target in ${month}.` : (list.length ? '' : `No targets set for ${month}.`);
     }
 
-    editDateInput.addEventListener("change", () => loadCategoriesForEdit(editDateInput.value));
-    document.addEventListener("DOMContentLoaded", () => {
-        if (editDateInput.value) loadCategoriesForEdit(editDateInput.value);
-    });
-</script>
+    // HUF preview: exact for HUF, otherwise the rate stored with this expense
+    const fmt = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    function hufNote() {
+        const amt = parseFloat(document.getElementById('amount').value) || 0;
+        const cur = document.getElementById('currency').value;
+        const note = document.getElementById('hufNote');
+        if (cur === 'HUF') { note.textContent = ''; return; }
+        if (cur === origCurrency && origAmount) { note.textContent = `≈ ${fmt(amt * origForint / origAmount)} Ft (rate recalculated on save)`; }
+        else { note.textContent = 'Converted to HUF on save'; }
+    }
 
+    dateInput.addEventListener('change', loadCategories);
+    document.getElementById('amount').addEventListener('input', hufNote);
+    document.getElementById('currency').addEventListener('change', hufNote);
+    document.getElementById('deleteForm').addEventListener('submit', e => { if (!confirm('Delete this expense?')) e.preventDefault(); });
+    loadCategories();
+    hufNote();
+</script>
 </body>
 </html>
