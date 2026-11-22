@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session
+from flask import Blueprint, render_template, request, redirect, session, flash
 from datetime import date
 import db
 from utils import convert_to_huf
@@ -21,7 +21,11 @@ def expenses():
         amt = float(request.form.get("amount"))
         cur = request.form.get("currency")
         desc = request.form.get("description", "")[:200]
-        huf_val = convert_to_huf(amt, cur, d)
+        try:
+            huf_val = convert_to_huf(amt, cur, d)
+        except Exception as e:  # FX lookup failed (Yahoo down / blocked / no data)
+            flash(f"Expense not saved: could not convert {cur} to HUF ({e}). Try again or enter it in HUF.")
+            return redirect(f"/expenses?month={selected_month}&year={selected_year}")
         
         form_type = request.form.get("form_type")
         data = {"date": d, "description": desc, "amount": amt, "currency": cur, "forint": huf_val}
@@ -78,7 +82,12 @@ def edit_expense(id):
     
     if request.method == "POST":
         d, amt, cur = request.form.get("date"), float(request.form.get("amount")), request.form.get("currency")
-        data = {"date": d, "description": request.form.get("description"), "amount": amt, "currency": cur, "category": request.form.get("category"), "forint": convert_to_huf(amt, cur, d)}
+        try:
+            huf_val = convert_to_huf(amt, cur, d)
+        except Exception as e:
+            flash(f"Expense not updated: could not convert {cur} to HUF ({e}). Try again or enter it in HUF.")
+            return redirect(f"/expenses?month={month}&year={year}")
+        data = {"date": d, "description": request.form.get("description"), "amount": amt, "currency": cur, "category": request.form.get("category"), "forint": huf_val}
         db.update_record("expense", id, data)
         return redirect(f"/expenses?month={month}&year={year}")
     

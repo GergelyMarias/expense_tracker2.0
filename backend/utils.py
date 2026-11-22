@@ -40,11 +40,19 @@ def convert_to_huf(amount, currency, d):
                        start=date_obj - timedelta(days=7),
                        end=date_obj + timedelta(days=1),
                        progress=False)
-    if data.empty:
-        raise ValueError("FX data unavailable")
-    series = data["Close"].ffill()
-    rate = series[series.index <= date_obj].iloc[-1]
-    return round(float(amount) * float(rate), 2)
+    if data is None or data.empty:
+        raise ValueError(f"{currency}/HUF exchange rate unavailable for {d}")
+    close = data["Close"]
+    # Newer yfinance returns Close as a one-column DataFrame (ticker columns): take that column
+    if hasattr(close, "columns"):
+        close = close.iloc[:, 0]
+    close = close.ffill().dropna()
+    close = close[close.index <= date_obj]
+    if close.empty:
+        raise ValueError(f"{currency}/HUF exchange rate unavailable for {d}")
+    # .iloc[-1] on a Series is a scalar; float(Series) raises TypeError on pandas 3
+    rate = float(close.iloc[-1])
+    return round(float(amount) * rate, 2)
 
 def format_amount(value):
     """
