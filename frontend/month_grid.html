@@ -53,6 +53,8 @@
         .btn-copy { border: 1px solid var(--line); background: var(--surface); color: var(--accent); }
         .btn-copy:hover { background: var(--accent-bg); }
         .btn-copy:disabled { opacity: .6; cursor: default; }
+        .copy-pct { font-size: .85rem; color: var(--text-2); white-space: nowrap; }
+        .copy-pct input { width: 4.5em; padding: .4rem .5rem; border: 1px solid var(--line); border-radius: 7px; font: inherit; text-align: right; }
 
         /* ------------------------------ Cards ------------------------------ */
         .table-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.2rem 1.3rem; animation: fade .45s ease both; }
@@ -81,6 +83,7 @@
         td input { width: 100px; padding: .42rem .5rem; border: 1px solid transparent; border-radius: 7px; text-align: right; font: inherit; background: transparent; color: var(--text); transition: border-color .15s, background .15s, box-shadow .15s; }
         td input:hover { border-color: var(--line); background: #fafbfc; }
         td input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(64,115,158,.12); }
+        td input.locked { color: var(--text-2); font-style: italic; cursor: not-allowed; background: transparent; border-color: transparent; }
         td input.dirty { background: var(--dirty); border-color: #f1c40f; }
         .num { text-align: right; padding: .5rem .6rem; }
         .total-col { font-weight: 800; background: #fafbfc; }
@@ -112,6 +115,7 @@
     <nav>
         <a href="/dashboard-b">🏠 Dashboard</a>
         <a href="/money-b">💰 Money</a>
+        <a href="/portfolio">📈 Portfolio</a>
         <a href="/targets"{% if page_url == '/targets' %} class="active"{% endif %}>🎯 Targets</a>
         <a href="/cashflow"{% if page_url == '/cashflow' %} class="active"{% endif %}>💸 CashFlow</a>
         <a href="/settings">⚙️ Settings</a>
@@ -135,6 +139,9 @@
             <span id="status" class="status"></span>
             <button type="button" id="discardBtn" class="btn-discard" hidden>Discard</button>
             <button type="button" id="saveBtn" class="btn-save" disabled>Save</button>
+            {% if page.allow_delete_all %}
+            <button type="button" id="deleteAllBtn" class="btn-discard">Delete all</button>
+            {% endif %}
         </div>
     </div>
 
@@ -170,18 +177,23 @@
                         {% for m, name in months %}
                         {% set v = matrix[cat].get(m) %}
                         {% set s = '{:,.0f}'.format(v).replace(',', '.') if v is not none else '' %}
+                        {% if m in locked.get(cat, []) %}
+                        <td><input type="text" data-month="{{ m }}" value="{{ s }}" data-orig="{{ s }}" disabled class="locked" title="Future month: taken from the Expense Targets total"></td>
+                        {% else %}
                         <td><input type="text" inputmode="numeric" data-month="{{ m }}" value="{{ s }}" data-orig="{{ s }}"></td>
+                        {% endif %}
                         {% endfor %}
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% if not labels %}
+        {% if not labels or auto_only %}
         <div class="empty" id="emptyMsg">
-            No {{ page.empty_noun }} recorded for {{ year }} yet.
+            {% if auto_only %}Only automatic rows for {{ year }} so far.{% else %}No {{ page.empty_noun }} recorded for {{ year }} yet.{% endif %}
             {% if prev_year_has_data %}
             <button type="button" id="copyPrevBtn" class="btn-copy">Copy from previous year ({{ year - 1 }})</button>
+            <label class="copy-pct">with change of <input type="text" id="copyPct" inputmode="decimal" value="0" size="4"> %</label>
             or add a row below.
             {% else %}
             {{ year - 1 }} has nothing to copy either — add a row below.
@@ -300,6 +312,25 @@ saveBtn.addEventListener('click', async () => {
     }
 });
 
+const deleteAllBtn = document.getElementById('deleteAllBtn');
+if (deleteAllBtn) deleteAllBtn.addEventListener('click', async () => {
+    if (!confirm(`Delete ALL {{ page.empty_noun }} for ${YEAR}? This cannot be undone.`)) return;
+    const typed = prompt(`To confirm, type the year (${YEAR}):`);
+    if (typed === null) return;
+    if (typed.trim() !== String(YEAR)) { setStatus('Delete cancelled: year did not match', true); return; }
+    deleteAllBtn.disabled = true;
+    setStatus('Deleting…');
+    try {
+        const res = await fetch(`${API}/${YEAR}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status);
+        window.onbeforeunload = null;
+        location.reload();
+    } catch (err) {
+        setStatus('Delete failed: ' + err.message, true);
+        deleteAllBtn.disabled = false;
+    }
+});
+
 window.onbeforeunload = e => { if (dirtyInputs().length) { e.preventDefault(); return ''; } };
 
 document.getElementById('addForm').addEventListener('submit', e => {
@@ -350,15 +381,32 @@ document.getElementById('discardBtn').addEventListener('click', () => {
 });
 
 document.getElementById('copyPrevBtn')?.addEventListener('click', async e => {
+    // Optional % change applied to every month of every row, e.g. 5 -> x1.05, -3 -> x0.97
+    const pctRaw = (document.getElementById('copyPct')?.value || '0').trim().replace(',', '.');
+    const pct = pctRaw === '' ? 0 : Number(pctRaw);
+    if (!Number.isFinite(pct) || (!ALLOW_NEG && pct <= -100)) { setStatus('Invalid percentage', true); return; }
+    const factor = 1 + pct / 100;
+    // Always round up to the next thousand (e.g. 657 -> 1.000, 1.000 -> 1.000, 1.001 -> 2.000)
+    const roundK = v => { if (!v) return 0; const r = Math.ceil(Math.round(Math.abs(v)) / 1000) * 1000; return v < 0 ? -r : r; };
     e.target.disabled = true;
     setStatus('Loading…');
     try {
         const res = await fetch(`${API}/${YEAR - 1}`);
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status);
         const { categories } = await res.json();
-        categories.forEach(c => addRow(c.category, c.months));
+        categories.forEach(c => {
+            const months = {};
+            for (const [m, v] of Object.entries(c.months)) months[m] = roundK(v * factor);
+            const existing = [...tbody.querySelectorAll('tr[data-category]')].find(tr => tr.dataset.category === c.category);
+            if (!existing) return addRow(c.category, months);
+            // Row already shown (e.g. Target Budget Allocation): fill only its editable, empty cells
+            existing.querySelectorAll('input:not([disabled])').forEach(inp => {
+                const v = months[inp.dataset.month];
+                if (v !== undefined && inp.value === '') inp.value = fmt(v);
+            });
+        });
         refresh();
-        setStatus(`Copied ${categories.length} rows from ${YEAR - 1} — click Save to keep them, or Discard`);
+        setStatus(`Copied ${categories.length} rows from ${YEAR - 1}${pct ? ` (${pct > 0 ? '+' : ''}${pct}%)` : ''} — click Save to keep them, or Discard`);
     } catch (err) {
         setStatus('Copy failed: ' + err.message, true);
         e.target.disabled = false;

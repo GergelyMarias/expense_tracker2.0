@@ -4,7 +4,7 @@ import datetime
 from db import conn, get_cursor, IS_POSTGRES, SQL_PLACEHOLDER
 
 # The only tables this app uses; backup, restore and info all work from this list
-TABLES = ['expense_record', 'income_record', 'expense_target', 'money_log']
+TABLES = ['expense_record', 'income_record', 'expense_target', 'money_log', 'portfolio_tx', 'portfolio_price']
 
 # ----------------------------- [GENERATE BACKUP DATA] -----------------------------
 def get_backup_bytes():

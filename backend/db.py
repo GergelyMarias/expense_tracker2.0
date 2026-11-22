@@ -75,12 +75,38 @@ def init_money_log():
         else:
             cur.execute("CREATE TABLE IF NOT EXISTS money_log (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, platform TEXT, amount REAL, currency TEXT DEFAULT 'HUF', liquid INTEGER DEFAULT 0, eur_rate REAL, usd_rate REAL, forint REAL);")
 
+def init_portfolio():
+    """portfolio_tx: one row per transaction; `type` decides which columns are used:
+         fx     - currency (from), amount (from), to_currency, to_amount
+         yahoo  - side, symbol, name, currency, quantity, amount (total invested / received)
+         manual - side, name, currency, quantity, price, amount
+         zcb    - name, currency, amount (invested), face_value, maturity
+       portfolio_price: manual price updates for 'manual' securities (matched by name + currency)."""
+    with get_cursor() as cur:
+        if IS_POSTGRES:
+            cur.execute("""CREATE TABLE IF NOT EXISTS portfolio_tx (
+                id SERIAL PRIMARY KEY, date DATE NOT NULL, type VARCHAR(10) NOT NULL, side VARCHAR(4) DEFAULT 'BUY',
+                symbol VARCHAR(40), name VARCHAR(200), currency CHAR(3), quantity NUMERIC(20,6), price NUMERIC(20,6),
+                amount NUMERIC(20,2), to_currency CHAR(3), to_amount NUMERIC(20,2), face_value NUMERIC(20,2),
+                maturity DATE, note VARCHAR(300));""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS portfolio_price (
+                id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, currency CHAR(3) NOT NULL, date DATE NOT NULL, price NUMERIC(20,6) NOT NULL);""")
+        else:
+            cur.execute("""CREATE TABLE IF NOT EXISTS portfolio_tx (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL, side TEXT DEFAULT 'BUY',
+                symbol TEXT, name TEXT, currency TEXT, quantity REAL, price REAL,
+                amount REAL, to_currency TEXT, to_amount REAL, face_value REAL,
+                maturity TEXT, note TEXT);""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS portfolio_price (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, currency TEXT NOT NULL, date TEXT NOT NULL, price REAL NOT NULL);""")
+
 # ------------------------------ [Initialize All Tables] ------------------------------
-# The app uses exactly four tables: expense_record, income_record, expense_target, money_log
+# Tables: expense_record, income_record, expense_target, money_log, portfolio_tx, portfolio_price
 def init_all():
     init_db()
     init_targets()
     init_money_log()
+    init_portfolio()
     if not IS_POSTGRES:
         conn.commit()
 

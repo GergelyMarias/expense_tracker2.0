@@ -150,9 +150,16 @@ def money_b():
         """)
         spending = [{"month": r["m"], "spent": _num(r["spent"])} for r in cur.fetchall() if r["m"]]
 
+        # Future expense targets (months after the current one) for the liquidity runway
+        cur.execute(f"""
+            SELECT month AS m, SUM(amount) AS target FROM expense_target
+            WHERE month > {SQL_PLACEHOLDER} GROUP BY month ORDER BY month ASC
+        """, (datetime.now().strftime("%Y-%m"),))
+        targets = [{"month": r["m"], "target": _num(r["target"])} for r in cur.fetchall() if r["m"]]
+
     return render_template(
         'money_b.html',
         snaps=snaps, accounts=accounts, prev_accounts=prev_accounts,
-        plan=plan, spending=spending,
+        plan=plan, spending=spending, targets=targets,
         today=datetime.now().strftime("%Y-%m"),
     )

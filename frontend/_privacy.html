@@ -8,7 +8,7 @@
 {% if hide_amounts %}
 <style>
     /* blur scales with the text size, so big headline numbers are just as unreadable as small ones */
-    .pv { filter: blur(max(5px, .38em)); transition: filter .2s; user-select: none; }
+    .pv, .money { filter: blur(max(5px, .38em)); transition: filter .2s; user-select: none; }
     canvas { filter: blur(9px); }
     td input[data-month], input.amt, input[name="amount"], #amount, .fx input { filter: blur(5px); transition: filter .15s; }
     td input[data-month]:focus, input.amt:focus, input[name="amount"]:focus, #amount:focus, .fx input:focus { filter: none; }
@@ -23,7 +23,8 @@
 <script>
 (() => {
     // Whole text is one amount: optional sign, digits with dot thousands / comma decimals, optional currency.
-    const WHOLE = /^[\s+\-−]*\d[\d.\s]*(,\d+)?\s*(Ft|€|\$|HUF|EUR|USD)?\s*$/;
+    const CCY = 'Ft|€|\\$|£|HUF|EUR|USD|GBP|CHF|PLN|CZK|JPY|SEK|NOK|DKK|CAD|AUD';
+    const WHOLE = new RegExp('^[\\s+\\-−]*\\d[\\d.\\s]*(,\\d+)?\\s*(' + CCY + ')?\\s*$');
     // Amounts inside longer text: thousands-grouped numbers, or any number followed by a currency.
     const INLINE = /[+\-−]?\d{1,3}(?:\.\d{3})+(?:,\d+)?(?:\s?(?:Ft|€|\$))?|[+\-−]?\d+(?:,\d+)?\s?(?:Ft|€|\$)(?![\w%])/g;
     const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'BUTTON', 'TITLE']);
@@ -34,7 +35,8 @@
         const t = el.textContent;
         if (!t || t.length > 40 || t.includes('%') || !WHOLE.test(t)) return false;
         if ([...el.children].some(c => !['SMALL', 'B', 'SPAN', 'I'].includes(c.tagName))) return false;
-        return /\d\.\d{3}/.test(t) || /(Ft|€|\$)/.test(t) || /(Ft|€|\$)/.test(el.nextElementSibling?.textContent || '');
+        const cur = new RegExp('(' + CCY + ')');
+        return /\d\.\d{3}/.test(t) || cur.test(t) || cur.test(el.nextElementSibling?.textContent || '');
     }
 
     function scan(root) {

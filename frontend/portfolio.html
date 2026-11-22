@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #f4f5f7; --surface: #ffffff; --line: #e6e8ec; --line-soft: #f0f1f4;
+            --text: #1f2430; --text-2: #5b6272; --muted: #9aa1ae; --accent: #40739e; --accent-bg: #eaf0f6;
+            --good: #1f8a5b; --good-bg: #e9f6ef; --bad: #d14343; --bad-bg: #fcecec; --warn: #b87800; --warn-bg: #fdf4e3;
+            /* validated categorical order */
+            --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948; --other: #b8bcc2;
+            --radius: 14px; --shadow: 0 1px 2px rgba(20,30,50,.04), 0 4px 16px rgba(20,30,50,.05);
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 1.2rem 2rem 3rem; font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); font-variant-numeric: tabular-nums; }
+        [hidden] { display: none !important; }
+
+        header { max-width: 1240px; margin: 0 auto 1.4rem; padding: .8rem 1.3rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+        .brand { font-weight: 800; }
+        nav { display: flex; gap: .2rem; flex-wrap: wrap; }
+        nav a { color: var(--text-2); text-decoration: none; font-weight: 600; font-size: .85rem; padding: .45rem .75rem; border-radius: 8px; transition: background .2s, color .2s; }
+        nav a:hover { background: var(--line-soft); color: var(--text); }
+        nav a.active { background: var(--accent-bg); color: var(--accent); }
+        .wrap { max-width: 1240px; margin: 0 auto; }
+
+        .toolbar { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+        .toolbar h1 { font-size: 1.25rem; font-weight: 800; margin: 0; }
+        .toolbar .asof { font-size: .8rem; color: var(--muted); }
+        .toolbar .right { margin-left: auto; display: flex; gap: .5rem; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; border: none; border-radius: 9px; padding: .58rem 1.05rem; font: inherit; font-weight: 700; font-size: .85rem; cursor: pointer; text-decoration: none; transition: background .2s, opacity .2s; white-space: nowrap; }
+        .btn-primary { background: var(--accent); color: #fff; } .btn-primary:hover { background: #355f84; }
+        .btn-primary:disabled { background: #d5dbe2; color: #8c95a3; cursor: default; }
+        .btn-ghost { background: #fff; color: var(--text-2); border: 1px solid var(--line); } .btn-ghost:hover { background: var(--line-soft); }
+        .btn-danger { background: #fff; color: var(--bad); border: 1px solid #f0c4c4; } .btn-danger:hover { background: var(--bad-bg); }
+
+        .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.2rem; }
+        .s12 { grid-column: span 12; } .s8 { grid-column: span 8; } .s7 { grid-column: span 7; } .s6 { grid-column: span 6; } .s5 { grid-column: span 5; } .s4 { grid-column: span 4; }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.25rem 1.35rem; animation: fade .45s ease both; min-width: 0; }
+        @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
+        .card h2 { margin: 0 0 .2rem; font-size: .95rem; font-weight: 700; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+        .why { margin: 0 0 1rem; color: var(--muted); font-size: .8rem; }
+        .idea { font-size: .68rem; font-weight: 700; color: var(--accent); background: var(--accent-bg); padding: .15rem .5rem; border-radius: 999px; }
+        .seg { margin-left: auto; display: inline-flex; background: var(--line-soft); border-radius: 8px; padding: 2px; }
+        .seg button { border: none; background: none; font: inherit; font-size: .75rem; font-weight: 600; color: var(--text-2); padding: .3rem .65rem; border-radius: 6px; cursor: pointer; }
+        .seg button.on { background: #fff; color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+        .pos { color: var(--good); } .neg { color: var(--bad); } .muted { color: var(--muted); }
+        .legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .78rem; color: var(--text-2); margin-bottom: .6rem; }
+        .legend span { display: inline-flex; align-items: center; gap: .35rem; }
+        .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+        .chart { position: relative; height: 300px; }
+        .loading { color: var(--muted); font-size: .9rem; padding: 2rem 0; text-align: center; }
+        .error { color: var(--bad); background: var(--bad-bg); border: 1px solid #f0c4c4; border-radius: 10px; padding: .8rem 1rem; font-size: .88rem; }
+
+        /* 1: headline */
+        .kpis { display: grid; grid-template-columns: 1.5fr repeat(4, 1fr); gap: 1.2rem; align-items: end; }
+        .kpis .label { font-size: .78rem; color: var(--text-2); font-weight: 600; }
+        .kpis .big { font-size: 2.5rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin-top: .2rem; white-space: nowrap; }
+        .kpis .big small, .kpi .v small { font-size: .95rem; font-weight: 700; margin-left: .2rem; }
+        .kpi { border-left: 1px solid var(--line); padding-left: 1.1rem; }
+        .kpi .v { font-size: 1.3rem; font-weight: 800; margin-top: .25rem; white-space: nowrap; }
+        .kpi .s { font-size: .76rem; color: var(--muted); margin-top: .15rem; }
+
+        /* lists */
+        .r { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .8rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--line-soft); }
+        .r:last-child { border-bottom: none; }
+        .r .n { font-weight: 600; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .r .v { font-weight: 700; font-size: .88rem; white-space: nowrap; text-align: right; }
+        .r .v small, .r .n small { display: block; font-weight: 500; font-size: .72rem; color: var(--muted); }
+        .tag { display: inline-block; font-size: .66rem; font-weight: 700; color: var(--text-2); border: 1px solid var(--line); border-radius: 999px; padding: 0 .45rem; margin-left: .3rem; vertical-align: 1px; }
+        .tag.warn { color: var(--warn); border-color: #ecd3a3; background: var(--warn-bg); }
+        .tag.t-yahoo { color: var(--s1); border-color: #c4dbf5; } .tag.t-manual { color: var(--s7); border-color: #d4cff4; }
+        .tag.t-zcb { color: var(--s6); border-color: #bfe0bf; } .tag.t-fx { color: var(--s2); border-color: #f6d0c0; }
+        .hbar { height: 6px; border-radius: 999px; background: var(--line-soft); margin-top: .35rem; overflow: hidden; }
+        .hbar i { display: block; height: 100%; border-radius: 999px; width: 0; transition: width .9s cubic-bezier(.2,.7,.2,1); }
+        .split { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; margin-bottom: .6rem; }
+        .split i { display: block; height: 100%; }
+
+        /* tables */
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        th { text-align: right; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: .55rem .55rem; border-bottom: 1px solid var(--line); white-space: nowrap; background: #fff; }
+        td { text-align: right; padding: .6rem .55rem; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+        th.l, td.l { text-align: left; }
+        tbody tr:hover td { background: #fafbfc; }
+        td .sub { display: block; font-size: .72rem; color: var(--muted); font-weight: 400; }
+        tr.group td { background: #fafbfc; font-size: .72rem; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; padding: .45rem .55rem; }
+        .w-bar { display: inline-block; width: 60px; height: 6px; border-radius: 999px; background: var(--line-soft); vertical-align: middle; margin-left: .4rem; overflow: hidden; }
+        .w-bar i { display: block; height: 100%; background: var(--s1); border-radius: 999px; }
+        .icon-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; font-size: .85rem; filter: grayscale(1); opacity: .65; }
+        .icon-btn:hover { background: var(--line-soft); filter: none; opacity: 1; }
+
+        /* 6: treemap */
+        .treemap { position: relative; height: 320px; border-radius: 10px; overflow: hidden; }
+        .tm { position: absolute; padding: .5rem .6rem; color: #fff; overflow: hidden; border: 2px solid #fff; border-radius: 8px; font-size: .78rem; line-height: 1.3; transition: filter .15s; cursor: default; }
+        .tm:hover { filter: brightness(1.06); }
+        .tm b { display: block; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tm span { opacity: .92; }
+
+        /* 7: bond ladder */
+        .ladder .bond { padding: .7rem 0; border-bottom: 1px solid var(--line-soft); }
+        .ladder .bond:last-child { border-bottom: none; }
+        .ladder .top { display: flex; justify-content: space-between; gap: .8rem; align-items: baseline; }
+        .ladder .top b { font-size: .88rem; }
+        .ladder .track { position: relative; height: 10px; border-radius: 999px; background: var(--line-soft); margin: .45rem 0 .3rem; overflow: hidden; }
+        .ladder .track i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #8fd0a6, var(--s6)); border-radius: 999px; width: 0; transition: width 1s cubic-bezier(.2,.7,.2,1); }
+        .ladder .meta { display: flex; justify-content: space-between; font-size: .74rem; color: var(--muted); gap: .6rem; flex-wrap: wrap; }
+
+        /* transactions */
+        .tx-tools { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-bottom: .8rem; }
+        .chips { display: inline-flex; gap: .3rem; flex-wrap: wrap; }
+        .chip { border: 1px solid var(--line); background: #fff; color: var(--text-2); font: inherit; font-size: .78rem; font-weight: 600; padding: .3rem .7rem; border-radius: 999px; cursor: pointer; }
+        .chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .tx-tools input { margin-left: auto; width: 220px; }
+
+        /* forms */
+        input, select, textarea { width: 100%; padding: .6rem .75rem; border-radius: 9px; font: inherit; font-size: .9rem; background: #fafbfc; color: var(--text); border: 1px solid var(--line); transition: border-color .2s, box-shadow .2s, background .2s; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(64,115,158,.12); }
+        input[readonly] { background: var(--line-soft); color: var(--text-2); }
+        label.f { display: block; font-size: .74rem; font-weight: 600; color: var(--text-2); margin-bottom: .3rem; }
+        .row { display: grid; gap: .7rem; margin-bottom: .8rem; }
+        .row.c2 { grid-template-columns: 1fr 1fr; } .row.c3 { grid-template-columns: 1fr 1fr 1fr; } .row.c-cur { grid-template-columns: 110px 1fr; }
+        .calc { font-size: .8rem; color: var(--text-2); background: var(--accent-bg); border-radius: 9px; padding: .6rem .8rem; margin-bottom: .8rem; }
+        .calc b { color: var(--text); }
+
+        dialog { border: none; border-radius: 16px; padding: 0; width: min(560px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(20,30,50,.25); color: var(--text); }
+        dialog::backdrop { background: rgba(31,36,48,.35); backdrop-filter: blur(2px); }
+        .dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.3rem .4rem; }
+        .dlg-head h3 { margin: 0; font-size: 1.05rem; }
+        .dlg-body { padding: .6rem 1.3rem 1.2rem; max-height: 72vh; overflow-y: auto; }
+        .dlg-foot { display: flex; gap: .5rem; padding: .9rem 1.3rem; border-top: 1px solid var(--line-soft); }
+        .dlg-foot .spacer { flex: 1; }
+        .close { border: none; background: none; font-size: 1.3rem; color: var(--muted); cursor: pointer; border-radius: 8px; padding: 0 .4rem; }
+        .close:hover { background: var(--line-soft); }
+        .types { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; margin-bottom: 1rem; }
+        .types button { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: .55rem .3rem; font: inherit; font-size: .76rem; font-weight: 700; color: var(--text-2); cursor: pointer; line-height: 1.25; }
+        .types button span { display: block; font-size: 1.05rem; margin-bottom: .15rem; }
+        .types button.on { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+        .types button:disabled { opacity: .45; cursor: default; }
+        .sidesel { display: inline-flex; background: var(--line-soft); border-radius: 9px; padding: 3px; margin-bottom: .8rem; }
+        .sidesel button { border: none; background: none; font: inherit; font-size: .82rem; font-weight: 700; padding: .4rem 1rem; border-radius: 7px; cursor: pointer; color: var(--text-2); }
+        .sidesel button.on.buy { background: var(--good); color: #fff; } .sidesel button.on.sell { background: var(--bad); color: #fff; }
+        .form-err { color: var(--bad); font-size: .82rem; margin-top: .2rem; min-height: 1em; }
+
+        .search { position: relative; }
+        .results { position: absolute; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); max-height: 260px; overflow-y: auto; z-index: 5; }
+        .results button { display: grid; grid-template-columns: auto 1fr auto; gap: .6rem; align-items: center; width: 100%; text-align: left; border: none; background: none; padding: .55rem .75rem; font: inherit; font-size: .84rem; cursor: pointer; border-bottom: 1px solid var(--line-soft); }
+        .results button:hover, .results button.hl { background: var(--accent-bg); }
+        .results b { font-family: ui-monospace, monospace; font-size: .8rem; }
+        .results small { color: var(--muted); font-size: .72rem; white-space: nowrap; }
+        .results .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .picked { display: flex; align-items: center; gap: .6rem; padding: .6rem .75rem; border: 1px solid #c8d7e5; background: var(--accent-bg); border-radius: 9px; font-size: .86rem; }
+        .picked b { font-family: ui-monospace, monospace; }
+        .picked .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .picked button { border: none; background: none; color: var(--accent); font: inherit; font-weight: 700; font-size: .78rem; cursor: pointer; }
+
+        .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: #fff; padding: .6rem 1rem; border-radius: 10px; font-size: .85rem; box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 60; }
+
+        @media (max-width: 1000px) {
+            .s8, .s7, .s6, .s5, .s4 { grid-column: span 12; }
+            .kpis { grid-template-columns: 1fr 1fr; } .kpi { border-left: none; padding-left: 0; }
+        }
+        @media (max-width: 560px) { body { padding: 1rem; } .row.c2, .row.c3 { grid-template-columns: 1fr; } .types { grid-template-columns: 1fr 1fr; } .tx-tools input { width: 100%; margin-left: 0; } }
+        @media (prefers-reduced-motion: reduce) { .card { animation: none; } .hbar i, .ladder .track i { transition: none; } }
+    </style>
+    {% include '_privacy.html' %}
+</head>
+<body>
+
+<header>
+    <div class="brand">Finance</div>
+    <nav>
+        <a href="/dashboard-b">🏠 Dashboard</a>
+        <a href="/money-b">💰 Money</a>
+        <a href="/portfolio" class="active">📈 Portfolio</a>
+        <a href="/targets">🎯 Targets</a>
+        <a href="/cashflow">💸 CashFlow</a>
+        <a href="/settings">⚙️ Settings</a>
+        <a href="/logout">🚪 Logout</a>
+    </nav>
+</header>
+
+<div class="wrap">
+    <div class="toolbar">
+        <h1>Portfolio</h1>
+        <span class="asof" id="asof">Loading prices…</span>
+        <div class="right">
+            <button class="btn btn-ghost" id="priceBtn" type="button">Update manual price</button>
+            <button class="btn btn-primary" id="addBtn" type="button">+ Add transaction</button>
+        </div>
+    </div>
+
+    <div id="errorBox" class="error" hidden></div>
+
+    <div class="grid" id="ideas">
+        <!-- Idea 1 -->
+        <section class="card s12">
+            <h2>Portfolio value <span class="idea">Idea 1 · Headline</span></h2>
+            <p class="why">Today's value, what you put in, and how it's doing, all in HUF.</p>
+            <div class="kpis" id="i1"><div class="loading">Loading…</div></div>
+        </section>
+
+        <!-- Idea 2 -->
+        <section class="card s12">
+            <h2>Value vs invested <span class="idea">Idea 2 · Growth</span>
+                <span class="seg" id="i2-range"><button data-r="6">6M</button><button data-r="12">1Y</button><button data-r="0" class="on">All</button></span>
+            </h2>
+            <p class="why">Month-end market value against the money invested; the gap between them is your profit.</p>
+            <div class="legend"><span><i style="background:var(--s1)"></i>Market value</span><span><i style="background:var(--other)"></i>Invested</span></div>
+            <div class="chart"><canvas id="i2-chart" role="img" aria-label="Line chart of portfolio value versus invested amount"></canvas></div>
+        </section>
+
+        <!-- Idea 3 -->
+        <section class="card s5">
+            <h2>Allocation <span class="idea">Idea 3 · Mix</span>
+                <span class="seg" id="i3-mode"><button data-m="type" class="on">Type</button><button data-m="currency">Currency</button><button data-m="holding">Holding</button></span>
+            </h2>
+            <p class="why">How the value is split.</p>
+            <div class="chart" style="height:210px"><canvas id="i3-chart" role="img" aria-label="Doughnut chart of allocation"></canvas></div>
+            <div id="i3-list" style="margin-top:.8rem"></div>
+        </section>
+
+        <!-- Idea 5 -->
+        <section class="card s7">
+            <h2>Profit / loss by holding <span class="idea">Idea 5 · Contributors</span></h2>
+            <p class="why">Unrealized gain or loss of each position in HUF, biggest effect first.</p>
+            <div class="chart" style="height:320px"><canvas id="i5-chart" role="img" aria-label="Bar chart of profit and loss per holding"></canvas></div>
+        </section>
+
+        <!-- Idea 4 -->
+        <section class="card s12">
+            <h2>Holdings <span class="idea">Idea 4 · Detailed table</span></h2>
+            <p class="why">Every open position, grouped by type. Values in the security's currency and in HUF.</p>
+            <div class="tbl-wrap"><table id="i4"><tbody><tr><td class="l muted">Loading…</td></tr></tbody></table></div>
+        </section>
+
+        <!-- Idea 6 -->
+        <section class="card s7">
+            <h2>Holdings map <span class="idea">Idea 6 · Treemap</span></h2>
+            <p class="why">Box size = value, colour = return (green up, red down).</p>
+            <div class="treemap" id="i6"></div>
+        </section>
+
+        <!-- Idea 7 -->
+        <section class="card s5">
+            <h2>Zero-coupon ladder <span class="idea">Idea 7 · Bonds</span></h2>
+            <p class="why">Accrual progress to maturity, payout and annual yield.</p>
+            <div class="ladder" id="i7"></div>
+        </section>
+
+        <!-- Idea 8 -->
+        <section class="card s6">
+            <h2>FX conversions <span class="idea">Idea 8 · Timing</span></h2>
+            <p class="why">Rate you got vs today's rate: would converting today be better or worse?</p>
+            <div id="i8"></div>
+        </section>
+
+        <!-- Idea 9 -->
+        <section class="card s6">
+            <h2>Manual prices <span class="idea">Idea 9 · Freshness</span></h2>
+            <p class="why">Securities not on Yahoo are only as accurate as their last price. Over 90 days is flagged.</p>
+            <div id="i9"></div>
+        </section>
+
+        <!-- Transactions (core feature) -->
+        <section class="card s12">
+            <h2>Transactions</h2>
+            <p class="why">Every logged transaction. Edit or delete with the icons.</p>
+            <div class="tx-tools">
+                <div class="chips" id="txFilter">
+                    <button class="chip on" data-t="">All</button><button class="chip" data-t="yahoo">Yahoo</button>
+                    <button class="chip" data-t="manual">Not on Yahoo</button><button class="chip" data-t="zcb">Zero-coupon</button><button class="chip" data-t="fx">FX</button>
+                </div>
+                <input type="search" id="txSearch" placeholder="Search name, symbol, note…" aria-label="Search transactions">
+            </div>
+            <div class="tbl-wrap"><table id="txTable"><tbody><tr><td class="l muted">Loading…</td></tr></tbody></table></div>
+        </section>
+    </div>
+</div>
+
+<!-- ------------------------------ Transaction dialog ------------------------------ -->
+<dialog id="txDlg">
+    <form id="txForm" novalidate>
+        <div class="dlg-head"><h3 id="txTitle">Add transaction</h3><button type="button" class="close" data-close aria-label="Close">×</button></div>
+        <div class="dlg-body">
+            <div class="types" id="typeSel">
+                <button type="button" data-type="yahoo"><span>📈</span>Yahoo security</button>
+                <button type="button" data-type="manual"><span>📝</span>Not on Yahoo</button>
+                <button type="button" data-type="zcb"><span>🏦</span>Zero-coupon bond</button>
+                <button type="button" data-type="fx"><span>💱</span>FX change</button>
+            </div>
+
+            <div class="sidesel" id="sideSel" data-for="yahoo manual">
+                <button type="button" class="buy on" data-side="BUY">Buy</button><button type="button" class="sell" data-side="SELL">Sell</button>
+            </div>
+
+            <div class="row c2"><div><label class="f" for="f-date">Date</label><input type="date" id="f-date" required></div><div></div></div>
+
+            <!-- yahoo -->
+            <div data-for="yahoo">
+                <label class="f" for="f-search">Security</label>
+                <div class="search" id="searchBox">
+                    <input type="text" id="f-search" placeholder="Search by name, ticker or ISIN…" autocomplete="off">
+                    <div class="results" id="results" hidden></div>
+                </div>
+                <div class="picked" id="picked" hidden><b id="pkSym"></b><span class="nm" id="pkName"></span><span class="muted" id="pkPrice"></span><button type="button" id="pkChange">Change</button></div>
+                <div style="height:.8rem"></div>
+            </div>
+
+            <!-- manual -->
+            <div data-for="manual">
+                <div class="row"><div><label class="f" for="f-name">Security name</label><input type="text" id="f-name" list="manualNames" placeholder="e.g. Erste Ingatlan Alap"><datalist id="manualNames"></datalist></div></div>
+            </div>
+            <!-- zcb -->
+            <div data-for="zcb">
+                <div class="row"><div><label class="f" for="f-bname">Bond name</label><input type="text" id="f-bname" placeholder="e.g. Hungarian Discount T-Bill 2027-03"></div></div>
+            </div>
+
+            <!-- fx -->
+            <div data-for="fx">
+                <div class="row c-cur"><div><label class="f" for="f-fcur">From</label><input id="f-fcur" list="ccys" maxlength="3" placeholder="HUF"></div><div><label class="f" for="f-famt">Amount sold</label><input id="f-famt" inputmode="decimal" placeholder="0"></div></div>
+                <div class="row c-cur"><div><label class="f" for="f-tcur">To</label><input id="f-tcur" list="ccys" maxlength="3" placeholder="EUR"></div><div><label class="f" for="f-tamt">Amount received</label><input id="f-tamt" inputmode="decimal" placeholder="0"></div></div>
+                <div class="calc" id="fxCalc">Enter both amounts to see the exchange rate.</div>
+            </div>
+
+            <!-- securities (yahoo + manual) -->
+            <div data-for="yahoo manual">
+                <div class="row c3">
+                    <div><label class="f" for="f-cur">Currency</label><input id="f-cur" list="ccys" maxlength="3" placeholder="EUR"></div>
+                    <div><label class="f" for="f-qty">Quantity</label><input id="f-qty" inputmode="decimal" placeholder="0"></div>
+                    <div data-for="manual"><label class="f" for="f-price">Price</label><input id="f-price" inputmode="decimal" placeholder="0"></div>
+                </div>
+                <div class="row"><div><label class="f" for="f-amt" id="amtLabel">Total invested</label><input id="f-amt" inputmode="decimal" placeholder="0"></div></div>
+                <div class="calc" id="secCalc" hidden></div>
+            </div>
+
+            <!-- zcb amounts -->
+            <div data-for="zcb">
+                <div class="row c3">
+                    <div><label class="f" for="f-zcur">Currency</label><input id="f-zcur" list="ccys" maxlength="3" placeholder="HUF"></div>
+                    <div><label class="f" for="f-zamt">Invested</label><input id="f-zamt" inputmode="decimal" placeholder="0"></div>
+                    <div><label class="f" for="f-face">Face value</label><input id="f-face" inputmode="decimal" placeholder="0"></div>
+                </div>
+                <div class="row c2"><div><label class="f" for="f-mat">Maturity</label><input type="date" id="f-mat"></div><div></div></div>
+                <div class="calc" id="zcbCalc">Enter amounts and maturity to see the yield.</div>
+            </div>
+
+            <div class="row"><div><label class="f" for="f-note">Note (optional)</label><input id="f-note" maxlength="300"></div></div>
+            <div class="form-err" id="formErr" role="alert"></div>
+        </div>
+        <div class="dlg-foot">
+            <button type="button" class="btn btn-danger" id="delBtn" hidden>Delete</button>
+            <span class="spacer"></span>
+            <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+            <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- ------------------------------ Manual price dialog ------------------------------ -->
+<dialog id="priceDlg">
+    <form id="priceForm" novalidate>
+        <div class="dlg-head"><h3>Update manual price</h3><button type="button" class="close" data-close aria-label="Close">×</button></div>
+        <div class="dlg-body">
+            <div class="row"><div><label class="f" for="p-asset">Security</label><select id="p-asset"></select></div></div>
+            <div class="row c2">
+                <div><label class="f" for="p-date">Date</label><input type="date" id="p-date"></div>
+                <div><label class="f" for="p-price" id="pPriceLbl">Price</label><input id="p-price" inputmode="decimal" placeholder="0"></div>
+            </div>
+            <div class="form-err" id="priceErr" role="alert"></div>
+            <label class="f" style="margin-top:.6rem">Price history</label>
+            <div id="priceHist"></div>
+        </div>
+        <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn btn-ghost" data-close>Close</button><button type="submit" class="btn btn-primary">Save price</button></div>
+    </form>
+</dialog>
+
+<datalist id="ccys"><option>HUF</option><option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option><option>PLN</option><option>CZK</option></datalist>
+
+<script>
+/* ============================== helpers ============================== */
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PAL = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'].map(css);
+const C = { s1: css('--s1'), good: css('--good'), bad: css('--bad'), other: css('--other'), grid: '#eef0f3' };
+const TYPE_LABEL = { yahoo: 'Yahoo', manual: 'Not on Yahoo', zcb: 'Zero-coupon', fx: 'FX' };
+const TYPE_COLOR = { yahoo: PAL[0], manual: PAL[6], zcb: PAL[5], fx: PAL[1] };
+const huf = n => { const r = Math.round(n); return (r < 0 ? '-' : '') + Math.abs(r).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
+const num = (n, d = 2) => { if (n == null || isNaN(n)) return '—'; const neg = n < 0; const [i, f] = Math.abs(n).toFixed(d).split('.'); return (neg ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (f ? ',' + f : ''); };
+// drop trailing zeros only from the decimal part: 600 stays 600, 2,5000 -> 2,5
+const trimDec = t => t.includes(',') ? t.replace(/0+$/, '').replace(/,$/, '') : t;
+const qtyFmt = n => trimDec(num(n, Number.isInteger(+n) ? 0 : 4));
+const money = (n, ccy) => `<span class="money">${ccy === 'HUF' ? huf(n) + ' Ft' : num(n) + ' ' + ccy}</span>`;
+const ft = n => `<span class="money">${huf(n)} Ft</span>`;
+const signed = n => `<span class="money">${n > 0 ? '+' : ''}${huf(n)} Ft</span>`;
+const pct = n => (n > 0 ? '+' : '') + num(n, 1) + '%';
+const cls = n => n > 0.5 ? 'pos' : n < -0.5 ? 'neg' : 'muted';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const dLabel = s => new Date(s + 'T00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+// Hungarian-style numbers: "1.910.000" / "1.910.000,50" / "2,5" / "1910000" / "159.34" (single dot = decimal)
+const parseNum = s => {
+    s = String(s ?? '').trim().replace(/\s/g, '');
+    if (!s) return NaN;
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');          // comma = decimal, dots = thousands
+    else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');       // 1.910.000, 1.340 -> thousands (Hungarian style)
+    return /^-?\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN;
+};
+const short = v => Math.abs(v) >= 1e6 ? (v / 1e6).toLocaleString('hu-HU', { maximumFractionDigits: 1 }) + 'M' : huf(v);
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+async function api(url, opts = {}) {
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    return data;
+}
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#5b6272';
+Chart.defaults.animation.duration = 650;
+const charts = {};
+function chart(id, cfg) { charts[id]?.destroy(); charts[id] = new Chart($(id), cfg); return charts[id]; }
+
+let S = null, H = null;
+
+/* ============================== load ============================== */
+async function load() {
+    $('errorBox').hidden = true;
+    try {
+        S = await api('/api/portfolio/summary');
+        $('asof').textContent = `Prices as of ${dLabel(S.as_of)}`;
+        renderAll();
+    } catch (e) {
+        $('errorBox').hidden = false; $('errorBox').textContent = e.message;
+        $('asof').textContent = '';
+    }
+    try { H = await api('/api/portfolio/history'); renderHistory(); } catch (e) { $('i2-chart').parentElement.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
+}
+function renderAll() { renderKpis(); renderAlloc('type'); renderPL(); renderHoldings(); renderTreemap(); renderLadder(); renderFx(); renderManual(); renderTx(); }
+
+/* ============================== Idea 1 ============================== */
+function renderKpis() {
+    const t = S.totals;
+    $('i1').innerHTML = `
+        <div><div class="label">Market value · ${t.positions} positions</div><div class="big">${huf(t.value_huf)}<small>Ft</small></div></div>
+        <div class="kpi"><div class="label">Invested</div><div class="v">${huf(t.cost_huf)}<small>Ft</small></div><div class="s">cost of open positions</div></div>
+        <div class="kpi"><div class="label">Unrealized P/L</div><div class="v ${cls(t.pl_huf)}">${t.pl_huf > 0 ? '+' : ''}${huf(t.pl_huf)}<small>Ft</small></div><div class="s">${pct(t.pl_pct)}</div></div>
+        <div class="kpi"><div class="label">Today</div><div class="v ${cls(t.day_change_huf)}">${t.day_change_huf > 0 ? '+' : ''}${huf(t.day_change_huf)}<small>Ft</small></div><div class="s">Yahoo-priced holdings</div></div>
+        <div class="kpi"><div class="label">Realized P/L</div><div class="v ${cls(t.realized_huf)}">${t.realized_huf > 0 ? '+' : ''}${huf(t.realized_huf)}<small>Ft</small></div><div class="s">from sales</div></div>`;
+}
+
+/* ============================== Idea 2 ============================== */
+function renderHistory() {
+    if (!H.dates.length) { $('i2-chart').parentElement.innerHTML = '<div class="loading">No holdings yet.</div>'; return; }
+    const pts = H.dates.map((d, i) => ({ x: new Date(d).getTime(), v: H.value[i], c: H.invested[i] }));
+    const c = chart('i2-chart', {
+        type: 'line',
+        data: { datasets: [
+            { label: 'Market value', data: pts.map(p => ({ x: p.x, y: p.v })), borderColor: C.s1, backgroundColor: C.s1 + '18', fill: '+1', borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: .25 },
+            { label: 'Invested', data: pts.map(p => ({ x: p.x, y: p.c })), borderColor: C.other, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, stepped: 'before', fill: false },
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'nearest', axis: 'x', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+                title: it => dLabel(new Date(it[0].raw.x).toISOString().slice(0, 10)),
+                label: it => `${it.dataset.label}: ${huf(it.raw.y)} Ft`,
+                footer: it => { const p = pts[it[0].dataIndex]; return `Profit: ${p.v - p.c > 0 ? '+' : ''}${huf(p.v - p.c)} Ft`; } } } },
+            scales: { x: { type: 'linear', grid: { display: false }, ticks: { maxTicksLimit: 8, callback: v => new Date(v).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }) } },
+                      y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: short } } } },
+    });
+    const maxX = pts[pts.length - 1].x, minX = pts[0].x;
+    $('i2-range').onclick = e => {
+        const b = e.target.closest('button'); if (!b) return;
+        $('i2-range').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        const m = +b.dataset.r; const d = new Date(maxX); d.setMonth(d.getMonth() - m);
+        c.options.scales.x.min = m ? Math.max(d.getTime(), minX) : minX; c.options.scales.x.max = maxX; c.update();
+    };
+}
+
+/* ============================== Idea 3 ============================== */
+function groups(mode) {
+    const g = {};
+    S.positions.forEach(p => {
+        const k = mode === 'type' ? TYPE_LABEL[p.type] : mode === 'currency' ? p.currency : p.name;
+        g[k] = (g[k] || 0) + p.value_huf;
+    });
+    let items = Object.entries(g).map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
+    if (items.length > 7) { const rest = items.slice(6); items = items.slice(0, 6).concat({ k: `Other (${rest.length})`, v: rest.reduce((s, x) => s + x.v, 0), other: true }); }
+    const typeColor = { [TYPE_LABEL.yahoo]: TYPE_COLOR.yahoo, [TYPE_LABEL.manual]: TYPE_COLOR.manual, [TYPE_LABEL.zcb]: TYPE_COLOR.zcb };
+    items.forEach((it, i) => it.color = it.other ? C.other : (mode === 'type' ? typeColor[it.k] : PAL[i]));
+    return items;
+}
+function renderAlloc(mode) {
+    const items = groups(mode), total = items.reduce((s, x) => s + x.v, 0) || 1;
+    chart('i3-chart', { type: 'doughnut',
+        data: { labels: items.map(i => i.k), datasets: [{ data: items.map(i => i.v), backgroundColor: items.map(i => i.color), borderColor: '#fff', borderWidth: 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false },
+            tooltip: { callbacks: { label: it => `${it.label}: ${huf(it.raw)} Ft (${num(it.raw / total * 100, 1)}%)` } } } } });
+    $('i3-list').innerHTML = items.map(i => `
+        <div class="r"><div class="n"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${i.color};margin-right:.45rem"></span>${esc(i.k)}</div>
+        <div class="v">${ft(i.v)}<small>${num(i.v / total * 100, 1)}%</small></div></div>`).join('');
+    $('i3-mode').onclick = e => { const b = e.target.closest('button'); if (!b) return; $('i3-mode').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderAlloc(b.dataset.m); };
+}
+
+/* ============================== Idea 5 ============================== */
+function renderPL() {
+    const items = [...S.positions].sort((a, b) => Math.abs(b.pl_huf) - Math.abs(a.pl_huf));
+    chart('i5-chart', { type: 'bar',
+        data: { labels: items.map(p => p.name.length > 28 ? p.name.slice(0, 27) + '…' : p.name),
+                datasets: [{ data: items.map(p => p.pl_huf), backgroundColor: items.map(p => p.pl_huf >= 0 ? C.good : C.bad), borderRadius: 4, barPercentage: .7 }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: it => { const p = items[it.dataIndex]; return `${it.raw > 0 ? '+' : ''}${huf(it.raw)} Ft (${pct(p.pl_pct)})`; } } } },
+            scales: { x: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: short } }, y: { grid: { display: false } } } } });
+}
+
+/* ============================== Idea 4 ============================== */
+function renderHoldings() {
+    if (!S.positions.length) { $('i4').innerHTML = '<tbody><tr><td class="l muted">No open positions.</td></tr></tbody>'; return; }
+    const order = ['yahoo', 'manual', 'zcb'];
+    let body = '';
+    order.forEach(type => {
+        const rows = S.positions.filter(p => p.type === type);
+        if (!rows.length) return;
+        const sub = rows.reduce((s, p) => s + p.value_huf, 0);
+        body += `<tr class="group"><td class="l" colspan="6">${TYPE_LABEL[type]}</td><td>${ft(sub)}</td><td colspan="2"></td></tr>`;
+        rows.forEach(p => {
+            const isBond = p.type === 'zcb';
+            const priceCell = isBond ? `${num(p.progress * 100, 0)}%<span class="sub">accrued · ${p.days_left} days left</span>`
+                : `${money(p.price, p.currency)}<span class="sub">${p.type === 'manual' ? (p.price_date ? 'set ' + dLabel(p.price_date) : '') + (p.stale_days > 90 ? ' <span class="tag warn">stale</span>' : '') : 'live'}</span>`;
+            body += `<tr>
+                <td class="l"><b>${esc(p.name)}</b><span class="sub">${p.symbol ? esc(p.symbol) + ' · ' : ''}${p.currency}${isBond ? ' · matures ' + dLabel(p.maturity) : ''}</span></td>
+                <td>${isBond ? '—' : qtyFmt(p.quantity)}</td>
+                <td>${isBond ? money(p.face_value, p.currency) + '<span class="sub">face value</span>' : money(p.avg_cost, p.currency) + '<span class="sub">avg cost</span>'}</td>
+                <td>${priceCell}</td>
+                <td>${money(p.value_ccy, p.currency)}</td>
+                <td>${money(p.cost_ccy, p.currency)}<span class="sub">invested</span></td>
+                <td><b>${ft(p.value_huf)}</b></td>
+                <td class="${cls(p.pl_huf)}">${signed(p.pl_huf)}<span class="sub ${cls(p.pl_huf)}">${pct(p.pl_pct)}</span></td>
+                <td>${num(p.weight, 1)}%<span class="w-bar"><i style="width:${Math.min(p.weight, 100)}%"></i></span></td></tr>`;
+        });
+    });
+    $('i4').innerHTML = `<thead><tr><th class="l">Security</th><th>Qty</th><th>Cost / face</th><th>Price</th><th>Value</th><th>Invested</th><th>Value HUF</th><th>P/L</th><th>Weight</th></tr></thead><tbody>${body}</tbody>`;
+}
+
+/* ============================== Idea 6 ============================== */
+function squarify(items, x, y, w, h) {
+    // Slice-and-dice squarified layout: items sorted desc by value
+    const out = [], total = items.reduce((s, i) => s + i.v, 0);
+    let rest = [...items], X = x, Y = y, W = w, Hh = h, rem = total;
+    while (rest.length) {
+        const horiz = W >= Hh, side = horiz ? Hh : W;
+        let row = [], best = Infinity;
+        for (const it of rest) {
+            const r = [...row, it], s = r.reduce((a, b) => a + b.v, 0);
+            const len = s / rem * (horiz ? W : Hh);
+            const worst = Math.max(...r.map(i => { const l = i.v / s * side; return Math.max(len / l, l / len); }));
+            if (worst > best) break;
+            best = worst; row = r;
+        }
+        const s = row.reduce((a, b) => a + b.v, 0), len = s / rem * (horiz ? W : Hh);
+        let off = 0;
+        row.forEach(it => {
+            const l = it.v / s * side;
+            out.push(horiz ? { ...it, x: X, y: Y + off, w: len, h: l } : { ...it, x: X + off, y: Y, w: l, h: len });
+            off += l;
+        });
+        if (horiz) { X += len; W -= len; } else { Y += len; Hh -= len; }
+        rem -= s; rest = rest.slice(row.length);
+    }
+    return out;
+}
+function retColor(p) {
+    const t = Math.max(-1, Math.min(1, p / 25));   // ±25% = full colour
+    const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+    const grey = [150, 158, 170], green = [31, 138, 91], red = [209, 67, 67];
+    const c = t >= 0 ? mix(grey, green, t) : mix(grey, red, -t);
+    return `rgb(${c.join(',')})`;
+}
+function renderTreemap() {
+    const box = $('i6'), W = box.clientWidth, Hh = box.clientHeight;
+    const items = S.positions.filter(p => p.value_huf > 0).map(p => ({ v: p.value_huf, p })).sort((a, b) => b.v - a.v);
+    if (!items.length) { box.innerHTML = '<div class="loading">No holdings.</div>'; return; }
+    box.innerHTML = squarify(items, 0, 0, W, Hh).map(t => `
+        <div class="tm" style="left:${t.x}px;top:${t.y}px;width:${t.w}px;height:${t.h}px;background:${retColor(t.p.pl_pct)}" title="${esc(t.p.name)}: ${huf(t.p.value_huf)} Ft · ${pct(t.p.pl_pct)}">
+            ${t.w > 70 && t.h > 38 ? `<b>${esc(t.p.symbol || t.p.name)}</b><span>${pct(t.p.pl_pct)}</span>${t.h > 64 ? `<br><span>${ft(t.p.value_huf)}</span>` : ''}` : ''}
+        </div>`).join('');
+}
+window.addEventListener('resize', () => S && renderTreemap());
+
+/* ============================== Idea 7 ============================== */
+function renderLadder() {
+    const bonds = S.positions.filter(p => p.type === 'zcb').sort((a, b) => a.maturity.localeCompare(b.maturity));
+    let html = bonds.map(b => `
+        <div class="bond">
+            <div class="top"><b>${esc(b.name)}</b><span>${money(b.face_value, b.currency)}</span></div>
+            <div class="track"><i data-w="${b.progress * 100}"></i></div>
+            <div class="meta"><span>${dLabel(b.since)} → ${dLabel(b.maturity)}</span><span>${b.days_left} days left · ${num(b.yield_pa, 2)}% p.a.</span></div>
+            <div class="meta"><span>Now ${money(b.value_ccy, b.currency)}</span><span>Gain at maturity ${money(b.face_value - b.cost_ccy, b.currency)}</span></div>
+        </div>`).join('') || '<div class="muted" style="font-size:.85rem">No open bonds.</div>';
+    if (S.matured.length) html += `<div style="margin-top:1rem;font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Matured</div>` +
+        S.matured.map(m => `<div class="r"><div class="n">${esc(m.name)}<small>matured ${dLabel(m.maturity)}</small></div><div class="v pos">${signed(m.gain_huf)}<small>${money(m.face_value, m.currency)} paid</small></div></div>`).join('');
+    $('i7').innerHTML = html;
+    requestAnimationFrame(() => setTimeout(() => $('i7').querySelectorAll('.track i').forEach(i => i.style.width = i.dataset.w + '%'), 50));
+}
+
+/* ============================== Idea 8 ============================== */
+function rateText(r, from, to) {
+    // Show the rate in its natural direction (bigger than 1): e.g. 397,22 HUF/EUR rather than 0,0025 EUR/HUF
+    return r >= 1 ? `${num(r, 4)} ${to}/${from}` : `${num(1 / r, 2)} ${from}/${to}`;
+}
+function renderFx() {
+    if (!S.fx.length) { $('i8').innerHTML = '<div class="muted" style="font-size:.85rem">No FX conversions logged.</div>'; return; }
+    $('i8').innerHTML = S.fx.map(f => `
+        <div class="r">
+            <div class="n">${money(f.amount, f.currency)} → ${money(f.to_amount, f.to_currency)}
+                <small>${dLabel(f.date)} · got ${rateText(f.implied_rate, f.currency, f.to_currency)} · today ${rateText(f.rate_now, f.currency, f.to_currency)}</small></div>
+            <div class="v ${cls(f.gain_huf)}">${signed(f.gain_huf)}<small class="${cls(f.gain_huf)}">${pct(f.gain_pct)} vs today</small></div>
+        </div>`).join('');
+}
+
+/* ============================== Idea 9 ============================== */
+function renderManual() {
+    const rows = S.positions.filter(p => p.type === 'manual').sort((a, b) => (b.stale_days ?? 0) - (a.stale_days ?? 0));
+    if (!rows.length) { $('i9').innerHTML = '<div class="muted" style="font-size:.85rem">No manually priced securities.</div>'; return; }
+    $('i9').innerHTML = rows.map(p => {
+        const d = p.stale_days ?? 0, w = Math.min(d / 180 * 100, 100);
+        const color = d > 90 ? 'var(--warn)' : 'var(--s3)';
+        return `<div class="r">
+            <div style="min-width:0"><div class="n">${esc(p.name)} ${d > 90 ? '<span class="tag warn">update needed</span>' : ''}</div>
+                <div class="hbar"><i data-w="${w}" style="background:${color}"></i></div>
+                <small class="muted" style="font-size:.72rem">Last price ${money(p.price, p.currency)} on ${dLabel(p.price_date)} · ${d} days ago</small></div>
+            <div class="v"><button class="btn btn-ghost" style="padding:.35rem .7rem;font-size:.75rem" data-price="${esc(p.name)}|${p.currency}">Update</button></div></div>`;
+    }).join('');
+    requestAnimationFrame(() => setTimeout(() => $('i9').querySelectorAll('.hbar i').forEach(i => i.style.width = i.dataset.w + '%'), 50));
+    $('i9').onclick = e => { const b = e.target.closest('[data-price]'); if (b) openPrice(b.dataset.price); };
+}
+
+/* ============================== Transactions table ============================== */
+let txType = '';
+function txDetails(t) {
+    if (t.type === 'fx') return { what: `${t.currency} → ${t.to_currency}`, detail: `${money(t.amount, t.currency)} → ${money(t.to_amount, t.to_currency)}`, rate: rateText(t.to_amount / t.amount, t.currency, t.to_currency) };
+    if (t.type === 'zcb') return { what: esc(t.name), detail: `${money(t.amount, t.currency)} → face ${money(t.face_value, t.currency)}`, rate: `matures ${dLabel(t.maturity)}` };
+    const unit = t.price || t.amount / t.quantity;
+    return { what: `${esc(t.name)}${t.symbol ? ` <span class="muted">${esc(t.symbol)}</span>` : ''}`, detail: `<span class="${t.side === 'SELL' ? 'neg' : 'pos'}" style="font-weight:700">${t.side}</span> ${qtyFmt(t.quantity)} × ${money(unit, t.currency)}`, rate: money(t.amount, t.currency) };
+}
+function renderTx() {
+    const q = $('txSearch').value.trim().toLowerCase();
+    const rows = S.transactions.filter(t => (!txType || t.type === txType) &&
+        (!q || [t.name, t.symbol, t.note, t.currency, t.to_currency].some(v => (v || '').toLowerCase().includes(q))));
+    $('txTable').innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Type</th><th class="l">Security / pair</th><th class="l">Details</th><th>Amount / rate</th><th class="l">Note</th><th></th></tr></thead><tbody>` +
+        (rows.map(t => { const d = txDetails(t); return `<tr>
+            <td class="l">${dLabel(t.date)}</td>
+            <td class="l"><span class="tag t-${t.type}" style="margin:0">${TYPE_LABEL[t.type]}</span></td>
+            <td class="l" style="white-space:normal;min-width:180px">${d.what}</td>
+            <td class="l">${d.detail}</td><td>${d.rate}</td>
+            <td class="l muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${esc(t.note || '')}</td>
+            <td><button class="icon-btn" data-edit="${t.id}" title="Edit" aria-label="Edit">✏️</button><button class="icon-btn" data-del="${t.id}" title="Delete" aria-label="Delete">🗑️</button></td></tr>`; }).join('')
+         || `<tr><td class="l muted" colspan="7">No transactions${q || txType ? ' match the filter' : ' yet'}.</td></tr>`) + '</tbody>';
+}
+$('txFilter').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; txType = b.dataset.t; $('txFilter').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b)); renderTx(); });
+$('txSearch').addEventListener('input', () => S && renderTx());
+$('txTable').addEventListener('click', async e => {
+    const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
+    if (ed) openTx(S.transactions.find(t => t.id == ed.dataset.edit));
+    if (del && confirm('Delete this transaction?')) {
+        try { await api(`/api/portfolio/tx/${del.dataset.del}`, { method: 'DELETE' }); toast('Transaction deleted'); load(); } catch (err) { alert(err.message); }
+    }
+});
+
+/* ============================== Transaction dialog ============================== */
+const dlg = $('txDlg');
+let editing = null, curType = 'yahoo', side = 'BUY', picked = null, amtTouched = false;
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+
+function setType(t) {
+    curType = t;
+    $('typeSel').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.type === t));
+    document.querySelectorAll('#txForm [data-for]').forEach(el => el.hidden = !el.dataset.for.split(' ').includes(t));
+    $('amtLabel').textContent = side === 'SELL' ? 'Total received' : 'Total invested';
+    $('formErr').textContent = '';
+    updateCalcs();
+}
+function setSide(s) {
+    side = s;
+    $('sideSel').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.side === s));
+    $('amtLabel').textContent = s === 'SELL' ? 'Total received' : 'Total invested';
+}
+$('typeSel').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) setType(b.dataset.type); });
+$('sideSel').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setSide(b.dataset.side); });
+
+function setPicked(p) {
+    picked = p;
+    $('picked').hidden = !p; $('searchBox').hidden = !!p;
+    if (p) { $('pkSym').textContent = p.symbol; $('pkName').textContent = p.name; $('pkPrice').textContent = p.price ? `${num(p.price)} ${p.currency}` : ''; }
+}
+
+function openTx(t = null) {
+    editing = t; amtTouched = !!t;
+    $('txForm').reset(); $('formErr').textContent = '';
+    $('txTitle').textContent = t ? 'Edit transaction' : 'Add transaction';
+    $('delBtn').hidden = !t;
+    // A transaction's type is fixed once saved (its fields differ); delete and re-add to change it
+    $('typeSel').querySelectorAll('button').forEach(b => b.disabled = !!t && b.dataset.type !== t.type);
+    $('manualNames').innerHTML = (S?.manual_assets || []).map(a => `<option value="${esc(a.name)}">`).join('');
+    $('f-date').value = t ? t.date : new Date().toISOString().slice(0, 10);
+    setSide(t?.side || 'BUY');
+    setPicked(null);
+    if (t) {
+        $('f-note').value = t.note || '';
+        if (t.type === 'fx') { $('f-fcur').value = t.currency; $('f-famt').value = num(t.amount); $('f-tcur').value = t.to_currency; $('f-tamt').value = num(t.to_amount); }
+        if (t.type === 'yahoo' || t.type === 'manual') { $('f-cur').value = t.currency; $('f-qty').value = qtyFmt(t.quantity); $('f-amt').value = num(t.amount); }
+        if (t.type === 'yahoo') setPicked({ symbol: t.symbol, name: t.name, currency: t.currency });
+        if (t.type === 'manual') { $('f-name').value = t.name; $('f-price').value = trimDec(num(t.price, 4)); }
+        if (t.type === 'zcb') { $('f-bname').value = t.name; $('f-zcur').value = t.currency; $('f-zamt').value = num(t.amount); $('f-face').value = num(t.face_value); $('f-mat').value = t.maturity; }
+    }
+    setType(t ? t.type : curType);
+    dlg.showModal();
+}
+$('addBtn').addEventListener('click', () => openTx());
+
+/* --- live calculations (rate, unit price, yield) --- */
+function updateCalcs() {
+    if (curType === 'fx') {
+        const fa = parseNum($('f-famt').value), ta = parseNum($('f-tamt').value), fc = $('f-fcur').value.toUpperCase() || 'from', tc = $('f-tcur').value.toUpperCase() || 'to';
+        $('fxCalc').innerHTML = fa > 0 && ta > 0
+            ? `Exchange rate: <b>${num(ta / fa, 4)} ${tc}</b> per 1 ${fc} · <b>${num(fa / ta, 4)} ${fc}</b> per 1 ${tc}`
+            : 'Enter both amounts to see the exchange rate (calculated, not entered).';
+    }
+    if (curType === 'yahoo' || curType === 'manual') {
+        const q = parseNum($('f-qty').value), a = parseNum($('f-amt').value), c = $('f-cur').value.toUpperCase();
+        if (curType === 'manual') {
+            const p = parseNum($('f-price').value);
+            if (!amtTouched && q > 0 && p > 0) $('f-amt').value = num(q * p);
+        }
+        const ok = q > 0 && parseNum($('f-amt').value) > 0;
+        $('secCalc').hidden = !ok;
+        if (ok) {
+            const unit = parseNum($('f-amt').value) / q;
+            let extra = '';
+            if (curType === 'yahoo' && picked?.price) { const diff = (unit / picked.price - 1) * 100; extra = ` · current price ${num(picked.price)} ${picked.currency} (${pct(diff)} vs yours)`; }
+            $('secCalc').innerHTML = `Price per unit: <b>${trimDec(num(unit, 4))} ${c}</b>${extra}`;
+        }
+    }
+    if (curType === 'zcb') {
+        const a = parseNum($('f-zamt').value), f = parseNum($('f-face').value), d0 = $('f-date').value, d1 = $('f-mat').value;
+        const days = d0 && d1 ? (new Date(d1) - new Date(d0)) / 864e5 : 0;
+        $('zcbCalc').innerHTML = a > 0 && f > 0 && days > 0
+            ? `Term <b>${Math.round(days)} days</b> · gain at maturity <b>${num(f - a)}</b> · yield <b>${num((Math.pow(f / a, 365 / days) - 1) * 100, 2)}% p.a.</b> · value grows linearly to face value`
+            : 'Enter amounts and maturity to see the yield.';
+    }
+}
+$('txForm').addEventListener('input', e => { if (e.target.id === 'f-amt') amtTouched = true; updateCalcs(); });
+
+/* --- Yahoo search --- */
+let searchTimer = null, searchSeq = 0, hl = -1;
+$('f-search').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = $('f-search').value.trim();
+    if (q.length < 2) { $('results').hidden = true; return; }
+    searchTimer = setTimeout(async () => {
+        const seq = ++searchSeq;
+        $('results').hidden = false; $('results').innerHTML = '<div class="loading" style="padding:.8rem">Searching Yahoo…</div>';
+        try {
+            const { results } = await api(`/api/portfolio/search?q=${encodeURIComponent(q)}`);
+            if (seq !== searchSeq) return;
+            hl = -1;
+            $('results').innerHTML = results.length ? results.map((r, i) => `<button type="button" data-i="${i}"><b>${esc(r.symbol)}</b><span class="nm">${esc(r.name)}</span><small>${esc(r.type)} · ${esc(r.exchange)}</small></button>`).join('')
+                : '<div class="loading" style="padding:.8rem">No match. Not on Yahoo? Use “Not on Yahoo”.</div>';
+            $('results')._data = results;
+        } catch (e) { $('results').innerHTML = `<div class="error" style="margin:.5rem">${esc(e.message)}</div>`; }
+    }, 300);
+});
+$('f-search').addEventListener('keydown', e => {
+    const btns = [...$('results').querySelectorAll('button')];
+    if (!btns.length || $('results').hidden) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); hl = (hl + (e.key === 'ArrowDown' ? 1 : -1) + btns.length) % btns.length; btns.forEach((b, i) => b.classList.toggle('hl', i === hl)); btns[hl].scrollIntoView({ block: 'nearest' }); }
+    if (e.key === 'Enter' && hl >= 0) { e.preventDefault(); btns[hl].click(); }
+    if (e.key === 'Escape') { e.preventDefault(); $('results').hidden = true; }
+});
+$('results').addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const r = $('results')._data[+b.dataset.i];
+    $('results').hidden = true;
+    setPicked({ ...r });
+    $('pkPrice').textContent = 'loading price…';
+    try {
+        const qd = await api(`/api/portfolio/quote?symbol=${encodeURIComponent(r.symbol)}`);
+        setPicked({ ...r, currency: qd.currency, price: qd.price });
+        $('f-cur').value = qd.currency;
+    } catch (err) { $('pkPrice').textContent = 'no price'; }
+    updateCalcs();
+    $('f-qty').focus();
+});
+$('pkChange').addEventListener('click', () => { setPicked(null); $('f-search').value = ''; $('f-search').focus(); });
+document.addEventListener('click', e => { if (!e.target.closest('#searchBox')) $('results').hidden = true; });
+
+/* --- save / delete --- */
+$('txForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const n = id => { const v = parseNum($(id).value); return isNaN(v) ? '' : v; };
+    const body = { type: curType, date: $('f-date').value, note: $('f-note').value };
+    if (curType === 'fx') Object.assign(body, { currency: $('f-fcur').value, amount: n('f-famt'), to_currency: $('f-tcur').value, to_amount: n('f-tamt') });
+    if (curType === 'yahoo') Object.assign(body, { side, symbol: picked?.symbol || '', name: picked?.name || '', currency: $('f-cur').value, quantity: n('f-qty'), amount: n('f-amt') });
+    if (curType === 'manual') Object.assign(body, { side, name: $('f-name').value, currency: $('f-cur').value, quantity: n('f-qty'), price: n('f-price'), amount: n('f-amt') });
+    if (curType === 'zcb') Object.assign(body, { name: $('f-bname').value, currency: $('f-zcur').value, amount: n('f-zamt'), face_value: n('f-face'), maturity: $('f-mat').value });
+    $('saveBtn').disabled = true;
+    try {
+        await api(editing ? `/api/portfolio/tx/${editing.id}` : '/api/portfolio/tx', { method: editing ? 'PUT' : 'POST', body: JSON.stringify(body) });
+        dlg.close(); toast(editing ? 'Transaction updated' : 'Transaction added'); load();
+    } catch (err) { $('formErr').textContent = err.message; }
+    finally { $('saveBtn').disabled = false; }
+});
+$('delBtn').addEventListener('click', async () => {
+    if (!editing || !confirm('Delete this transaction?')) return;
+    try { await api(`/api/portfolio/tx/${editing.id}`, { method: 'DELETE' }); dlg.close(); toast('Transaction deleted'); load(); }
+    catch (err) { $('formErr').textContent = err.message; }
+});
+
+/* ============================== Manual price dialog ============================== */
+const pdlg = $('priceDlg');
+function renderPriceHist() {
+    const [name, cur] = ($('p-asset').value || '|').split('|');
+    $('pPriceLbl').textContent = `Price (${cur || '—'})`;
+    const rows = (S.prices || []).filter(p => p.name === name && p.currency === cur);
+    const txp = S.transactions.filter(t => t.type === 'manual' && t.name === name && t.currency === cur);
+    $('priceHist').innerHTML = rows.map(p => `<div class="r"><div class="n">${dLabel(p.date)}<small>manual update</small></div><div class="v" style="display:flex;gap:.5rem;align-items:center">${money(p.price, p.currency)}<button type="button" class="icon-btn" data-pdel="${p.id}" title="Delete price">🗑️</button></div></div>`).join('') +
+        txp.map(t => `<div class="r"><div class="n">${dLabel(t.date)}<small>${t.side === 'SELL' ? 'sell' : 'buy'} transaction</small></div><div class="v">${money(t.price, t.currency)}</div></div>`).join('') ||
+        '<div class="muted" style="font-size:.85rem">No prices yet.</div>';
+}
+function openPrice(key) {
+    if (!S.manual_assets.length) { toast('Add a “Not on Yahoo” security first'); return; }
+    $('p-asset').innerHTML = S.manual_assets.map(a => `<option value="${esc(a.name)}|${a.currency}">${esc(a.name)} (${a.currency})</option>`).join('');
+    if (key) $('p-asset').value = key;
+    $('p-date').value = new Date().toISOString().slice(0, 10); $('p-price').value = ''; $('priceErr').textContent = '';
+    renderPriceHist(); pdlg.showModal(); $('p-price').focus();
+}
+$('priceBtn').addEventListener('click', () => S && openPrice());
+$('p-asset').addEventListener('change', renderPriceHist);
+$('priceHist').addEventListener('click', async e => {
+    const b = e.target.closest('[data-pdel]'); if (!b || !confirm('Delete this price?')) return;
+    try { await api(`/api/portfolio/prices/${b.dataset.pdel}`, { method: 'DELETE' }); S.prices = S.prices.filter(p => p.id != b.dataset.pdel); renderPriceHist(); load(); } catch (err) { $('priceErr').textContent = err.message; }
+});
+$('priceForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const [name, currency] = $('p-asset').value.split('|');
+    try {
+        await api('/api/portfolio/prices', { method: 'POST', body: JSON.stringify({ name, currency, date: $('p-date').value, price: parseNum($('p-price').value) }) });
+        pdlg.close(); toast('Price saved'); load();
+    } catch (err) { $('priceErr').textContent = err.message; }
+});
+
+load();
+</script>
+</body>
+</html>

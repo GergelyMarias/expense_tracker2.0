@@ -84,6 +84,10 @@
         /* Idea 6: runway */
         .runway .big { font-size: 2.4rem; font-weight: 800; letter-spacing: -.02em; }
         .runway .big small { font-size: 1rem; font-weight: 700; margin-left: .25rem; }
+        .rw-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: .4rem 0 .8rem; }
+        .rw-lbl { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+        .rw-sub { font-size: .8rem; color: var(--text-2); line-height: 1.4; }
+        .runway .rw-chart { height: 200px; }
         .track { position: relative; height: 12px; border-radius: 999px; background: linear-gradient(90deg, var(--bad-bg) 0 25%, var(--warn-bg) 25% 50%, var(--good-bg) 50% 100%); margin: 1rem 0 .4rem; }
         .track .mark { position: absolute; top: -5px; width: 4px; height: 22px; border-radius: 2px; background: var(--text); transform: translateX(-2px); transition: left .9s cubic-bezier(.2,.7,.2,1); left: 0; }
         .ticks { display: flex; justify-content: space-between; font-size: .7rem; color: var(--muted); }
@@ -117,6 +121,7 @@
     <nav>
         <a href="/dashboard-b">🏠 Dashboard</a>
         <a href="/money-b" class="active">💰 Money</a>
+        <a href="/portfolio">📈 Portfolio</a>
         <a href="/targets">🎯 Targets</a>
         <a href="/cashflow">💸 CashFlow</a>
         <a href="/settings">⚙️ Settings</a>
@@ -178,10 +183,16 @@
         <!-- Liquidity runway -->
         <section class="card span-5 runway" style="animation-delay:.14s">
             <h2>Liquidity runway</h2>
-            <p class="why">How long your liquid money would cover your actual spending.</p>
-            <div class="big" id="i6-months"></div>
-            <div class="track"><span class="mark" id="i6-mark"></span></div>
-            <div class="ticks"><span>0</span><span>3 mo</span><span>6 mo</span><span>12+ mo</span></div>
+            <p class="why">Month by month, how long your money covers the future targets on the Expense Targets page.</p>
+            <div class="rw-pair">
+                <div><div class="rw-lbl">Liquid wealth</div><div class="big" id="i6-liquid"></div><div class="rw-sub" id="i6-liquid-sub"></div></div>
+                <div><div class="rw-lbl">Total wealth</div><div class="big" id="i6-total"></div><div class="rw-sub" id="i6-total-sub"></div></div>
+            </div>
+            <div class="legend">
+                <span><i style="background:var(--s1)"></i>Liquid left</span>
+                <span><i style="background:var(--s3)"></i>Total left</span>
+            </div>
+            <div class="chart rw-chart"><canvas id="i6-chart" role="img" aria-label="Line chart of liquid and total wealth remaining after each month's targets"></canvas></div>
             <div class="note" id="i6-note"></div>
         </section>
 
@@ -219,6 +230,7 @@ const ACCOUNTS = {{ accounts | tojson }};
 const PREV = {{ prev_accounts | tojson }};
 const PLAN = {{ plan | tojson }};
 const SPENDING = {{ spending | tojson }};
+const TARGETS = {{ targets | tojson }};
 const TODAY_M = '{{ today }}';
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -355,19 +367,75 @@ const months = Object.keys(byMonth).sort();
     render('account');
 })();
 
-/* ---------- Liquidity runway: liquidity runway ---------- */
+/* ---------- Liquidity runway: latest wealth drawn down by future expense targets ---------- */
 (() => {
-    // Average of the last 6 complete months of actual spending
-    const done = SPENDING.filter(s => s.month < TODAY_M).slice(-6);
-    const avg = done.length ? done.reduce((s, x) => s + x.spent, 0) / done.length : 0;
-    if (!avg) { el('i6-months').textContent = '—'; el('i6-note').textContent = 'No spending recorded yet.'; return; }
-    const months = last.liquid / avg;
-    el('i6-months').innerHTML = (months >= 100 ? '99+' : months.toFixed(1)) + '<small>months</small>';
-    el('i6-months').className = 'big ' + (months < 3 ? 'neg' : months < 6 ? '' : 'pos');
-    // Scale: 0..12 months over the track (3 mo = 25%, 6 mo = 50%)
-    setTimeout(() => el('i6-mark').style.left = Math.min(months / 12 * 100, 100) + '%', 150);
-    el('i6-note').innerHTML = `Liquid <b>${ft(last.liquid)}</b> ÷ average spending <b>${ft(avg)}</b>/month (last ${done.length} complete months).
-        3–6 months is the usual emergency-fund rule of thumb.`;
+    const note = el('i6-note');
+    if (!last) { ['i6-liquid', 'i6-total'].forEach(id => el(id).textContent = '—'); note.textContent = 'No money snapshot recorded yet.'; return; }
+    if (!TARGETS.length) { ['i6-liquid', 'i6-total'].forEach(id => el(id).textContent = '—'); note.textContent = 'No future targets on the Expense Targets page.'; return; }
+
+    // Walk the future target months; a month with no target costs 0.
+    // Runway = full months covered + the fraction of the month where money runs out.
+    const byM = Object.fromEntries(TARGETS.map(t => [t.month, t.target]));
+    const addM = (ym, k) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + k, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+    const first = TARGETS[0].month, end = TARGETS[TARGETS.length - 1].month;
+    const months = [];
+    for (let m = first; m <= end; m = addM(m, 1)) months.push(m);
+
+    const run = start => {
+        let left = start, runway = null, outMonth = null;
+        const series = months.map((m, i) => {
+            const cost = byM[m] || 0;
+            if (runway === null && cost > left) { runway = i + Math.max(left, 0) / cost; outMonth = m; }
+            const before = left;
+            left -= cost;
+            // Plot until the balance hits 0: the crossing month ends at 0, later months are not drawn
+            return before < 0 ? null : Math.max(left, 0);
+        });
+        return { series, runway, outMonth, endLeft: left };
+    };
+    const liq = run(last.liquid), tot = run(last.total);
+    // Shorten the x axis to the last month either line is still drawn
+    const lastIdx = Math.max(...[liq.series, tot.series].map(s => s.findLastIndex(v => v !== null)));
+    const shown = months.slice(0, lastIdx + 1);
+    const span = months.length;
+
+    const show = (id, r) => {
+        const big = el(id), sub = el(id + '-sub');
+        if (r.runway === null) {
+            big.innerHTML = `${span}+<small>months</small>`;
+            big.className = 'big pos';
+            sub.innerHTML = `Covers every target. <b>${ft(r.endLeft)}</b> left after ${monthLabel(end)}.`;
+        } else {
+            big.innerHTML = r.runway.toFixed(1) + '<small>months</small>';
+            big.className = 'big ' + (r.runway < 3 ? 'neg' : r.runway < 6 ? '' : 'pos');
+            sub.innerHTML = `Runs out in <b>${monthLabel(r.outMonth)}</b>.`;
+        }
+    };
+    show('i6-liquid', liq);
+    show('i6-total', tot);
+
+    new Chart(el('i6-chart'), {
+        type: 'line',
+        data: { labels: shown.map(monthLabel), datasets: [
+            { label: 'Liquid left', data: liq.series.slice(0, shown.length), borderColor: C.s1, backgroundColor: C.s1, borderWidth: 2, pointRadius: 0, tension: .2 },
+            { label: 'Total left', data: tot.series.slice(0, shown.length), borderColor: C.s3, backgroundColor: C.s3, borderWidth: 2, pointRadius: 0, tension: .2 },
+        ] },
+        options: {
+            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+                label: i => i.raw == null ? `${i.dataset.label}: ran out` : `${i.dataset.label}: ${ft(i.raw)}`,
+                footer: items => `Target this month: ${ft(byM[months[items[0].dataIndex]] || 0)}` } } },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+                y: { ...axisMoney, grid: { color: c => c.tick.value === 0 ? C.bad : C.grid } },
+            },
+        },
+    });
+
+    const total = TARGETS.reduce((s, t) => s + t.target, 0);
+    note.innerHTML = `Starts from the latest snapshot (${last.date}): liquid <b>${ft(last.liquid)}</b>, total <b>${ft(last.total)}</b>.
+        Subtracts each future month's target total, ${monthLabel(first)} to ${monthLabel(end)} (<b>${ft(total)}</b> in all).
+        Income and market gains are not included.`;
 })();
 
 /* ---------- Plan vs actual: plan vs actual ---------- */

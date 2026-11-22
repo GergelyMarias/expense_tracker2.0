@@ -72,14 +72,23 @@ class GridStore:
             )
 
 
+    def delete_year(self, cur, year):
+        """Delete every row of one year."""
+        cur.execute(f"DELETE FROM {self.table} WHERE {self.month_expr()} LIKE {P}", (f"{year}-%",))
+        return cur.rowcount
+
+
 def _ordered(matrix):
     """Biggest total first; ties alphabetically."""
     return sorted(matrix, key=lambda k: (-sum(matrix[k].values()), k.lower()))
 
 
-def make_grid_blueprint(name, page_url, api_url, store, page):
-    """page: dict of display settings passed to the template (title, labels, allow_negative...)."""
+def make_grid_blueprint(name, page_url, api_url, store, page, before_read=None, after_write=None, locked=None):
+    """page: dict of display settings passed to the template (title, labels, allow_negative...).
+    before_read(): runs before the grid is read. after_write(cur): runs in the same transaction after a save/delete.
+    locked(year) -> {label: {months}}: read-only cells (shown disabled, ignored on save)."""
     bp = Blueprint(name, __name__)
+    locked_for = locked or (lambda year: {})
 
     def year_matrix(year):
         matrix = {}
@@ -97,8 +106,14 @@ def make_grid_blueprint(name, page_url, api_url, store, page):
         except ValueError:
             year = date.today().year
 
+        if before_read:
+            before_read()
         matrix = year_matrix(year)
+        lock = locked_for(year)
         recorded = store.years()
+        # Rows filled automatically (every value sits in a locked cell) don't count as user data,
+        # so a year holding only those still offers "Copy from previous year".
+        auto_only = bool(matrix) and all(set(matrix[k]) <= set(lock.get(k, ())) for k in matrix)
         return render_template(
             "month_grid.html",
             page=page,
@@ -109,7 +124,9 @@ def make_grid_blueprint(name, page_url, api_url, store, page):
             months=[(i, calendar.month_name[i]) for i in range(1, 13)],
             labels=_ordered(matrix),
             matrix=matrix,
-            prev_year_has_data=not matrix and (year - 1) in recorded,
+            locked={k: sorted(v) for k, v in lock.items()},
+            auto_only=auto_only,
+            prev_year_has_data=(not matrix or auto_only) and (year - 1) in recorded,
             view="annual" if request.args.get("view") == "annual" else "monthly",
         )
 
@@ -117,6 +134,8 @@ def make_grid_blueprint(name, page_url, api_url, store, page):
     def annual():
         if not session.get("logged_in"):
             return jsonify(error="unauthorized"), 401
+        if before_read:
+            before_read()
         totals = {}
         for y, label, total in store.year_totals():
             totals.setdefault(label, {})[y] = total
@@ -130,6 +149,8 @@ def make_grid_blueprint(name, page_url, api_url, store, page):
         """Read-only: pre-fills the table for 'Copy from previous year' (saved only on Save)."""
         if not session.get("logged_in"):
             return jsonify(error="unauthorized"), 401
+        if before_read:
+            before_read()
         matrix = year_matrix(year)
         return jsonify(categories=[{"category": k, "months": matrix[k]} for k in _ordered(matrix)])
 
@@ -155,10 +176,26 @@ def make_grid_blueprint(name, page_url, api_url, store, page):
         except (KeyError, TypeError, ValueError):
             return jsonify(error="invalid input"), 400
 
+        lock = locked_for(year)
+        parsed = [p for p in parsed if p[0] not in lock.get(p[1], ())]
         with get_cursor() as c:
             for month, label, amount in parsed:
                 store.replace_cell(c, year, month, label, amount)
+            if after_write:
+                after_write(c)
             c.connection.commit()
         return jsonify(ok=True, saved=len(parsed))
+
+    if page.get("allow_delete_all"):
+        @bp.route(f"{api_url}/<int:year>", methods=["DELETE"], endpoint="delete_year")
+        def delete_year(year):
+            if not session.get("logged_in"):
+                return jsonify(error="unauthorized"), 401
+            with get_cursor() as c:
+                deleted = store.delete_year(c, year)
+                if after_write:
+                    after_write(c)
+                c.connection.commit()
+            return jsonify(ok=True, deleted=deleted)
 
     return bp
