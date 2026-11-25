@@ -94,12 +94,6 @@
         .icon-btn { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; font-size: .85rem; filter: grayscale(1); opacity: .65; }
         .icon-btn:hover { background: var(--line-soft); filter: none; opacity: 1; }
 
-        /* 6: treemap */
-        .treemap { position: relative; height: 320px; border-radius: 10px; overflow: hidden; }
-        .tm { position: absolute; padding: .5rem .6rem; color: #fff; overflow: hidden; border: 2px solid #fff; border-radius: 8px; font-size: .78rem; line-height: 1.3; transition: filter .15s; cursor: default; }
-        .tm:hover { filter: brightness(1.06); }
-        .tm b { display: block; font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tm span { opacity: .92; }
 
         /* 7: bond ladder */
         .ladder .bond { padding: .7rem 0; border-bottom: 1px solid var(--line-soft); }
@@ -144,6 +138,24 @@
         .sidesel { display: inline-flex; background: var(--line-soft); border-radius: 9px; padding: 3px; margin-bottom: .8rem; }
         .sidesel button { border: none; background: none; font: inherit; font-size: .82rem; font-weight: 700; padding: .4rem 1rem; border-radius: 7px; cursor: pointer; color: var(--text-2); }
         .sidesel button.on.buy { background: var(--good); color: #fff; } .sidesel button.on.sell { background: var(--bad); color: #fff; }
+        .ext { display: flex; gap: .65rem; align-items: flex-start; padding: .7rem .8rem; margin-bottom: .8rem; border: 1px solid var(--line); border-radius: 10px; background: #fafbfc; cursor: pointer; }
+        .ext.on { border-color: #c8d7e5; background: var(--accent-bg); }
+        .ext input { width: auto; margin-top: .15rem; accent-color: var(--accent); }
+        .ext b { display: block; font-size: .85rem; }
+        .ext small { display: block; font-size: .76rem; color: var(--text-2); line-height: 1.4; margin-top: .1rem; }
+        #i4 tfoot td { border-top: 2px solid var(--line); padding-top: .7rem; }
+        .ccy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: .9rem; }
+        .ccy { border: 1px solid var(--line); border-radius: 12px; padding: .9rem 1rem; }
+        .ccy .top { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+        .ccy .top b { font-size: 1.05rem; }
+        .ccy .split { height: 8px; border-radius: 999px; background: var(--s1); margin: .6rem 0 .35rem; overflow: hidden; }
+        .ccy .split i { display: block; height: 100%; background: var(--s4); }
+        .ccy .meta { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; font-size: .74rem; color: var(--text-2); }
+        .ccy .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: .3rem; }
+        .ccy .dot.cash { background: var(--s4); } .ccy .dot.inv { background: var(--s1); }
+        .ccy .nums { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem .8rem; margin-top: .75rem; }
+        .ccy .nums small { display: block; font-size: .7rem; color: var(--muted); }
+        .ccy .nums b { font-size: .92rem; }
         .form-err { color: var(--bad); font-size: .82rem; margin-top: .2rem; min-height: 1em; }
 
         .search { position: relative; }
@@ -189,7 +201,7 @@
         <h1>Portfolio</h1>
         <span class="asof" id="asof">Loading prices…</span>
         <div class="right">
-            <button class="btn btn-ghost" id="priceBtn" type="button">Update manual price</button>
+            <button class="btn btn-ghost" id="priceBtn" type="button">Update not-on-Yahoo value</button>
             <button class="btn btn-primary" id="addBtn" type="button">+ Add transaction</button>
         </div>
     </div>
@@ -199,25 +211,32 @@
     <div class="grid" id="ideas">
         <!-- Idea 1 -->
         <section class="card s12">
-            <h2>Portfolio value <span class="idea">Idea 1 · Headline</span></h2>
+            <h2>Portfolio value</h2>
             <p class="why">Today's value, what you put in, and how it's doing, all in HUF.</p>
             <div class="kpis" id="i1"><div class="loading">Loading…</div></div>
         </section>
 
         <!-- Idea 2 -->
         <section class="card s12">
-            <h2>Value vs invested <span class="idea">Idea 2 · Growth</span>
+            <h2>Value vs invested
                 <span class="seg" id="i2-range"><button data-r="6">6M</button><button data-r="12">1Y</button><button data-r="0" class="on">All</button></span>
             </h2>
-            <p class="why">Month-end market value against the money invested; the gap between them is your profit.</p>
+            <p class="why">Daily market value (closing prices) against the money invested; the gap between them is your profit.</p>
             <div class="legend"><span><i style="background:var(--s1)"></i>Market value</span><span><i style="background:var(--other)"></i>Invested</span></div>
             <div class="chart"><canvas id="i2-chart" role="img" aria-label="Line chart of portfolio value versus invested amount"></canvas></div>
         </section>
 
+        <!-- Platforms -->
+        <section class="card s12">
+            <h2>Platforms</h2>
+            <p class="why">Each platform valued on its own (its own cash too): invested vs value today and the result split into investment return and currency effect. Click a row for its holdings.</p>
+            <div class="tbl-wrap"><table id="plat-tbl"></table></div>
+        </section>
+
         <!-- Idea 3 -->
         <section class="card s5">
-            <h2>Allocation <span class="idea">Idea 3 · Mix</span>
-                <span class="seg" id="i3-mode"><button data-m="type" class="on">Type</button><button data-m="currency">Currency</button><button data-m="holding">Holding</button></span>
+            <h2>Allocation
+                <span class="seg" id="i3-mode"><button data-m="holding" class="on">Holding</button><button data-m="currency">Currency</button><button data-m="platform">Platform</button></span>
             </h2>
             <p class="why">How the value is split.</p>
             <div class="chart" style="height:210px"><canvas id="i3-chart" role="img" aria-label="Doughnut chart of allocation"></canvas></div>
@@ -226,44 +245,40 @@
 
         <!-- Idea 5 -->
         <section class="card s7">
-            <h2>Profit / loss by holding <span class="idea">Idea 5 · Contributors</span></h2>
+            <h2>Profit / loss by holding</h2>
             <p class="why">Unrealized gain or loss of each position in HUF, biggest effect first.</p>
             <div class="chart" style="height:320px"><canvas id="i5-chart" role="img" aria-label="Bar chart of profit and loss per holding"></canvas></div>
         </section>
 
         <!-- Idea 4 -->
         <section class="card s12">
-            <h2>Holdings <span class="idea">Idea 4 · Detailed table</span></h2>
+            <h2>Holdings</h2>
             <p class="why">Every open position, grouped by type. Values in the security's currency and in HUF.</p>
             <div class="tbl-wrap"><table id="i4"><tbody><tr><td class="l muted">Loading…</td></tr></tbody></table></div>
         </section>
 
-        <!-- Idea 6 -->
-        <section class="card s7">
-            <h2>Holdings map <span class="idea">Idea 6 · Treemap</span></h2>
-            <p class="why">Box size = value, colour = return (green up, red down).</p>
-            <div class="treemap" id="i6"></div>
-        </section>
 
         <!-- Idea 7 -->
         <section class="card s5">
-            <h2>Zero-coupon ladder <span class="idea">Idea 7 · Bonds</span></h2>
+            <h2>Zero-coupon ladder</h2>
             <p class="why">Accrual progress to maturity, payout and annual yield.</p>
             <div class="ladder" id="i7"></div>
         </section>
 
-        <!-- Idea 8 -->
-        <section class="card s6">
-            <h2>FX conversions <span class="idea">Idea 8 · Timing</span></h2>
-            <p class="why">Rate you got vs today's rate: would converting today be better or worse?</p>
-            <div id="i8"></div>
+        <!-- Idea 9 -->
+        <section class="card s7">
+            <h2>Manual prices</h2>
+            <p class="why">Securities not on Yahoo are only as accurate as their last update (quantity + current value). Over 90 days is flagged.</p>
+            <div id="i9"></div>
         </section>
 
-        <!-- Idea 9 -->
-        <section class="card s6">
-            <h2>Manual prices <span class="idea">Idea 9 · Freshness</span></h2>
-            <p class="why">Securities not on Yahoo are only as accurate as their last price. Over 90 days is flagged.</p>
-            <div id="i9"></div>
+        <!-- Idea 8 -->
+        <section class="card s12">
+            <h2>Currencies</h2>
+            <p class="why">Every unit of foreign currency you acquired — still as cash or already invested — at its average HUF rate versus today.
+                This is the pure currency result, separate from how the investments did.</p>
+            <div id="i8"></div>
+            <div id="i8-fx" style="margin-top:1.1rem"></div>
         </section>
 
         <!-- Transactions (core feature) -->
@@ -298,7 +313,9 @@
                 <button type="button" class="buy on" data-side="BUY">Buy</button><button type="button" class="sell" data-side="SELL">Sell</button>
             </div>
 
-            <div class="row c2"><div><label class="f" for="f-date">Date</label><input type="date" id="f-date" required></div><div></div></div>
+            <div class="row c2"><div><label class="f" for="f-date">Date</label><input type="date" id="f-date" required></div>
+                <div><label class="f" for="f-plat">Platform</label>
+                    <div class="search" id="platBox"><input type="text" id="f-plat" maxlength="100" placeholder="Pick or type a new one" autocomplete="off"><div class="results" id="platResults" hidden></div></div></div></div>
 
             <!-- yahoo -->
             <div data-for="yahoo">
@@ -313,7 +330,11 @@
 
             <!-- manual -->
             <div data-for="manual">
-                <div class="row"><div><label class="f" for="f-name">Security name</label><input type="text" id="f-name" list="manualNames" placeholder="e.g. Erste Ingatlan Alap"><datalist id="manualNames"></datalist></div></div>
+                <label class="f" for="f-name">Security name</label>
+                <div class="search" id="nameBox" style="margin-bottom:.8rem">
+                    <input type="text" id="f-name" placeholder="Pick one you added before, or type a new name" autocomplete="off">
+                    <div class="results" id="nameResults" hidden></div>
+                </div>
             </div>
             <!-- zcb -->
             <div data-for="zcb">
@@ -332,7 +353,6 @@
                 <div class="row c3">
                     <div><label class="f" for="f-cur">Currency</label><input id="f-cur" list="ccys" maxlength="3" placeholder="EUR"></div>
                     <div><label class="f" for="f-qty">Quantity</label><input id="f-qty" inputmode="decimal" placeholder="0"></div>
-                    <div data-for="manual"><label class="f" for="f-price">Price</label><input id="f-price" inputmode="decimal" placeholder="0"></div>
                 </div>
                 <div class="row"><div><label class="f" for="f-amt" id="amtLabel">Total invested</label><input id="f-amt" inputmode="decimal" placeholder="0"></div></div>
                 <div class="calc" id="secCalc" hidden></div>
@@ -349,6 +369,12 @@
                 <div class="calc" id="zcbCalc">Enter amounts and maturity to see the yield.</div>
             </div>
 
+            <label class="ext" id="extRow" for="f-ext" hidden>
+                <input type="checkbox" id="f-ext">
+                <span><b>Paid with money from outside the portfolio</b>
+                <small id="extHelp">For past purchases where you don't know how the currency was obtained. Cash is not used; the cost is the amount at the HUF rate of the purchase date.</small></span>
+            </label>
+
             <div class="row"><div><label class="f" for="f-note">Note (optional)</label><input id="f-note" maxlength="300"></div></div>
             <div class="form-err" id="formErr" role="alert"></div>
         </div>
@@ -364,18 +390,20 @@
 <!-- ------------------------------ Manual price dialog ------------------------------ -->
 <dialog id="priceDlg">
     <form id="priceForm" novalidate>
-        <div class="dlg-head"><h3>Update manual price</h3><button type="button" class="close" data-close aria-label="Close">×</button></div>
+        <div class="dlg-head"><h3>Update not-on-Yahoo value</h3><button type="button" class="close" data-close aria-label="Close">×</button></div>
         <div class="dlg-body">
             <div class="row"><div><label class="f" for="p-asset">Security</label><select id="p-asset"></select></div></div>
-            <div class="row c2">
+            <div class="row c3">
                 <div><label class="f" for="p-date">Date</label><input type="date" id="p-date"></div>
-                <div><label class="f" for="p-price" id="pPriceLbl">Price</label><input id="p-price" inputmode="decimal" placeholder="0"></div>
+                <div><label class="f" for="p-qty">Quantity held</label><input id="p-qty" inputmode="decimal" placeholder="0"></div>
+                <div><label class="f" for="p-value" id="pValLbl">Current value</label><input id="p-value" inputmode="decimal" placeholder="0"></div>
             </div>
+            <div class="calc" id="pCalc">Enter quantity and current value; the price is calculated.</div>
             <div class="form-err" id="priceErr" role="alert"></div>
-            <label class="f" style="margin-top:.6rem">Price history</label>
+            <label class="f" style="margin-top:.6rem">History</label>
             <div id="priceHist"></div>
         </div>
-        <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn btn-ghost" data-close>Close</button><button type="submit" class="btn btn-primary">Save price</button></div>
+        <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn btn-ghost" data-close>Close</button><button type="submit" class="btn btn-primary">Save update</button></div>
     </form>
 </dialog>
 
@@ -387,8 +415,8 @@ const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const PAL = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8'].map(css);
 const C = { s1: css('--s1'), good: css('--good'), bad: css('--bad'), other: css('--other'), grid: '#eef0f3' };
-const TYPE_LABEL = { yahoo: 'Yahoo', manual: 'Not on Yahoo', zcb: 'Zero-coupon', fx: 'FX' };
-const TYPE_COLOR = { yahoo: PAL[0], manual: PAL[6], zcb: PAL[5], fx: PAL[1] };
+const TYPE_LABEL = { yahoo: 'Yahoo', manual: 'Not on Yahoo', zcb: 'Zero-coupon', fx: 'FX', cash: 'Cash (FX)' };
+const TYPE_COLOR = { yahoo: PAL[0], manual: PAL[6], zcb: PAL[5], fx: PAL[1], cash: PAL[3] };
 const huf = n => { const r = Math.round(n); return (r < 0 ? '-' : '') + Math.abs(r).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); };
 const num = (n, d = 2) => { if (n == null || isNaN(n)) return '—'; const neg = n < 0; const [i, f] = Math.abs(n).toFixed(d).split('.'); return (neg ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (f ? ',' + f : ''); };
 // drop trailing zeros only from the decimal part: 600 stays 600, 2,5000 -> 2,5
@@ -438,7 +466,7 @@ async function load() {
     }
     try { H = await api('/api/portfolio/history'); renderHistory(); } catch (e) { $('i2-chart').parentElement.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
 }
-function renderAll() { renderKpis(); renderAlloc('type'); renderPL(); renderHoldings(); renderTreemap(); renderLadder(); renderFx(); renderManual(); renderTx(); }
+function renderAll() { renderKpis(); renderAlloc($('i3-mode').querySelector('.on')?.dataset.m || 'holding'); renderPL(); renderHoldings(); renderLadder(); renderPlatforms(); renderFx(); renderManual(); renderTx(); }
 
 /* ============================== Idea 1 ============================== */
 function renderKpis() {
@@ -454,11 +482,15 @@ function renderKpis() {
 /* ============================== Idea 2 ============================== */
 function renderHistory() {
     if (!H.dates.length) { $('i2-chart').parentElement.innerHTML = '<div class="loading">No holdings yet.</div>'; return; }
+    if (H.dates.length < 2) {   // a line needs two points: first transactions are from today
+        $('i2-chart').parentElement.innerHTML = `<div class="loading">The chart starts once there is more than one day of history.<br>Today: value ${ft(H.value[0])} · invested ${ft(H.invested[0])}</div>`;
+        return;
+    }
     const pts = H.dates.map((d, i) => ({ x: new Date(d).getTime(), v: H.value[i], c: H.invested[i] }));
     const c = chart('i2-chart', {
         type: 'line',
         data: { datasets: [
-            { label: 'Market value', data: pts.map(p => ({ x: p.x, y: p.v })), borderColor: C.s1, backgroundColor: C.s1 + '18', fill: '+1', borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: .25 },
+            { label: 'Market value', data: pts.map(p => ({ x: p.x, y: p.v })), borderColor: C.s1, backgroundColor: C.s1 + '18', fill: '+1', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0, cubicInterpolationMode: 'default' },
             { label: 'Invested', data: pts.map(p => ({ x: p.x, y: p.c })), borderColor: C.other, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, stepped: 'before', fill: false },
         ] },
         options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'nearest', axis: 'x', intersect: false },
@@ -466,7 +498,7 @@ function renderHistory() {
                 title: it => dLabel(new Date(it[0].raw.x).toISOString().slice(0, 10)),
                 label: it => `${it.dataset.label}: ${huf(it.raw.y)} Ft`,
                 footer: it => { const p = pts[it[0].dataIndex]; return `Profit: ${p.v - p.c > 0 ? '+' : ''}${huf(p.v - p.c)} Ft`; } } } },
-            scales: { x: { type: 'linear', grid: { display: false }, ticks: { maxTicksLimit: 8, callback: v => new Date(v).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }) } },
+            scales: { x: { type: 'linear', min: pts[0].x, max: pts[pts.length - 1].x, grid: { display: false }, ticks: { maxTicksLimit: 8, callback: v => new Date(v).toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }) } },
                       y: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: short } } } },
     });
     const maxX = pts[pts.length - 1].x, minX = pts[0].x;
@@ -487,12 +519,12 @@ function groups(mode) {
     });
     let items = Object.entries(g).map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
     if (items.length > 7) { const rest = items.slice(6); items = items.slice(0, 6).concat({ k: `Other (${rest.length})`, v: rest.reduce((s, x) => s + x.v, 0), other: true }); }
-    const typeColor = { [TYPE_LABEL.yahoo]: TYPE_COLOR.yahoo, [TYPE_LABEL.manual]: TYPE_COLOR.manual, [TYPE_LABEL.zcb]: TYPE_COLOR.zcb };
+    const typeColor = { [TYPE_LABEL.yahoo]: TYPE_COLOR.yahoo, [TYPE_LABEL.manual]: TYPE_COLOR.manual, [TYPE_LABEL.zcb]: TYPE_COLOR.zcb, [TYPE_LABEL.cash]: TYPE_COLOR.cash };
     items.forEach((it, i) => it.color = it.other ? C.other : (mode === 'type' ? typeColor[it.k] : PAL[i]));
     return items;
 }
 function renderAlloc(mode) {
-    const items = groups(mode), total = items.reduce((s, x) => s + x.v, 0) || 1;
+    const items = mode === 'platform' ? S.by_platform.map((b, i) => ({ k: b.platform, v: b.value_huf, color: PAL[i % PAL.length] })) : groups(mode), total = items.reduce((s, x) => s + x.v, 0) || 1;
     chart('i3-chart', { type: 'doughnut',
         data: { labels: items.map(i => i.k), datasets: [{ data: items.map(i => i.v), backgroundColor: items.map(i => i.color), borderColor: '#fff', borderWidth: 2 }] },
         options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { display: false },
@@ -515,16 +547,35 @@ function renderPL() {
 }
 
 /* ============================== Idea 4 ============================== */
+// Each HUF P/L = investment return (in the holding's own currency, at today's rate) + currency effect.
+const ccyAmt = (n, ccy) => ccy === 'HUF' ? signed(n) : `<span class="money">${n > 0 ? '+' : ''}${num(n)} ${ccy}</span>`;
 function renderHoldings() {
     if (!S.positions.length) { $('i4').innerHTML = '<tbody><tr><td class="l muted">No open positions.</td></tr></tbody>'; return; }
-    const order = ['yahoo', 'manual', 'zcb'];
+    const order = ['yahoo', 'manual', 'zcb', 'cash'];
+    const fxCell = p => p.currency === 'HUF' ? '<span class="muted">—</span>'
+        : `<span class="${cls(p.fx_pl_huf)}">${signed(p.fx_pl_huf)}</span><span class="sub">bought at ${num(p.buy_rate, 2)} · now ${num(p.rate_now, 2)}</span>`;
     let body = '';
     order.forEach(type => {
         const rows = S.positions.filter(p => p.type === type);
         if (!rows.length) return;
         const sub = rows.reduce((s, p) => s + p.value_huf, 0);
-        body += `<tr class="group"><td class="l" colspan="6">${TYPE_LABEL[type]}</td><td>${ft(sub)}</td><td colspan="2"></td></tr>`;
+        body += `<tr class="group"><td class="l" colspan="8">${type === 'cash' ? 'Cash (from FX changes and sales)' : TYPE_LABEL[type]}</td><td>${ft(sub)}</td><td colspan="2"></td></tr>`;
         rows.forEach(p => {
+            if (p.type === 'cash') {
+                body += `<tr>
+                    <td class="l"><b>${esc(p.name)}</b><span class="sub">since ${dLabel(p.since)}</span></td>
+                    <td>—</td>
+                    <td>${num(p.avg_cost, 2)} Ft<span class="sub">avg rate paid</span></td>
+                    <td>${num(p.rate_now, 2)} Ft<span class="sub">today's rate</span></td>
+                    <td>${ft(p.cost_huf)}<span class="sub">invested</span></td>
+                    <td>${money(p.value_ccy, p.currency)}</td>
+                    <td><span class="muted">—</span></td>
+                    <td>${fxCell(p)}</td>
+                    <td><b>${ft(p.value_huf)}</b></td>
+                    <td class="${cls(p.pl_huf)}">${signed(p.pl_huf)}<span class="sub ${cls(p.pl_huf)}">${pct(p.pl_pct)}</span></td>
+                    <td>${num(p.weight, 1)}%<span class="w-bar"><i style="width:${Math.min(p.weight, 100)}%"></i></span></td></tr>`;
+                return;
+            }
             const isBond = p.type === 'zcb';
             const priceCell = isBond ? `${num(p.progress * 100, 0)}%<span class="sub">accrued · ${p.days_left} days left</span>`
                 : `${money(p.price, p.currency)}<span class="sub">${p.type === 'manual' ? (p.price_date ? 'set ' + dLabel(p.price_date) : '') + (p.stale_days > 90 ? ' <span class="tag warn">stale</span>' : '') : 'live'}</span>`;
@@ -533,60 +584,73 @@ function renderHoldings() {
                 <td>${isBond ? '—' : qtyFmt(p.quantity)}</td>
                 <td>${isBond ? money(p.face_value, p.currency) + '<span class="sub">face value</span>' : money(p.avg_cost, p.currency) + '<span class="sub">avg cost</span>'}</td>
                 <td>${priceCell}</td>
+                <td>${money(p.cost_ccy, p.currency)}${p.currency !== 'HUF' ? `<span class="sub">${huf(p.cost_huf)} Ft</span>` : ''}</td>
                 <td>${money(p.value_ccy, p.currency)}</td>
-                <td>${money(p.cost_ccy, p.currency)}<span class="sub">invested</span></td>
+                <td class="${cls(p.pl_ccy_pct * 10)}">${ccyAmt(p.pl_ccy, p.currency)}<span class="sub ${cls(p.pl_ccy_pct * 10)}">${pct(p.pl_ccy_pct)}</span></td>
+                <td>${fxCell(p)}</td>
                 <td><b>${ft(p.value_huf)}</b></td>
                 <td class="${cls(p.pl_huf)}">${signed(p.pl_huf)}<span class="sub ${cls(p.pl_huf)}">${pct(p.pl_pct)}</span></td>
                 <td>${num(p.weight, 1)}%<span class="w-bar"><i style="width:${Math.min(p.weight, 100)}%"></i></span></td></tr>`;
         });
     });
-    $('i4').innerHTML = `<thead><tr><th class="l">Security</th><th>Qty</th><th>Cost / face</th><th>Price</th><th>Value</th><th>Invested</th><th>Value HUF</th><th>P/L</th><th>Weight</th></tr></thead><tbody>${body}</tbody>`;
+    // Currency exposure: cash + holdings in that currency (informational, already inside the rows above)
+    if (S.currencies.length) {
+        body += `<tr class="group"><td class="l" colspan="11">Currency exposure <span style="text-transform:none;font-weight:500;letter-spacing:0">· cash + holdings in that currency, already counted above</span></td></tr>`;
+        S.currencies.forEach(c => {
+            body += `<tr>
+                <td class="l"><b>${c.currency}</b><span class="sub">${num(c.cash)} cash + ${num(c.holdings_value_ccy)} in ${c.positions} holding${c.positions === 1 ? '' : 's'}</span></td>
+                <td>—</td>
+                <td>${num(c.avg_rate, 2)} Ft<span class="sub">avg rate acquired</span></td>
+                <td>${num(c.rate_now, 2)} Ft<span class="sub">today's rate</span></td>
+                <td>${ft(c.cost_huf)}<span class="sub">${num(c.units)} ${c.currency} acquired</span></td>
+                <td>${money(c.exposure_ccy, c.currency)}<span class="sub">exposure</span></td>
+                <td class="${cls(c.inv_pl_huf)}">${signed(c.inv_pl_huf)}<span class="sub">investments</span></td>
+                <td class="${cls(c.fx_pl_huf)}">${signed(c.fx_pl_huf)}<span class="sub ${cls(c.fx_pl_huf)}">${pct(c.fx_pl_pct)} rate</span></td>
+                <td>${ft(c.exposure_huf)}</td>
+                <td class="${cls(c.inv_pl_huf + c.fx_pl_huf)}">${signed(c.inv_pl_huf + c.fx_pl_huf)}</td>
+                <td>${num(c.weight, 1)}%<span class="w-bar"><i style="width:${Math.min(c.weight, 100)}%"></i></span></td></tr>`;
+        });
+    }
+    const t = S.totals;
+    const foot = `<tfoot><tr class="total">
+        <td class="l"><b>Total</b><span class="sub">investment return + currency effect = HUF result</span></td><td></td><td></td><td></td>
+        <td>${ft(t.cost_huf)}</td><td></td>
+        <td class="${cls(t.inv_pl_huf)}">${signed(t.inv_pl_huf)}<span class="sub">investments</span></td>
+        <td class="${cls(t.fx_pl_huf)}">${signed(t.fx_pl_huf)}<span class="sub">currency</span></td>
+        <td><b>${ft(t.value_huf)}</b></td>
+        <td class="${cls(t.pl_huf)}"><b>${signed(t.pl_huf)}</b><span class="sub ${cls(t.pl_huf)}">${pct(t.pl_pct)}</span></td><td></td></tr></tfoot>`;
+    $('i4').innerHTML = `<thead><tr><th class="l">Security</th><th>Qty</th><th>Cost / face</th><th>Price</th><th>Invested</th><th>Value</th>
+        <th title="Gain in the holding's own currency">Return (own ccy)</th><th title="Gain or loss from the HUF rate moving since purchase">FX effect</th><th>Value HUF</th><th>P/L HUF</th><th>Weight</th></tr></thead><tbody>${body}</tbody>${foot}`;
 }
 
-/* ============================== Idea 6 ============================== */
-function squarify(items, x, y, w, h) {
-    // Slice-and-dice squarified layout: items sorted desc by value
-    const out = [], total = items.reduce((s, i) => s + i.v, 0);
-    let rest = [...items], X = x, Y = y, W = w, Hh = h, rem = total;
-    while (rest.length) {
-        const horiz = W >= Hh, side = horiz ? Hh : W;
-        let row = [], best = Infinity;
-        for (const it of rest) {
-            const r = [...row, it], s = r.reduce((a, b) => a + b.v, 0);
-            const len = s / rem * (horiz ? W : Hh);
-            const worst = Math.max(...r.map(i => { const l = i.v / s * side; return Math.max(len / l, l / len); }));
-            if (worst > best) break;
-            best = worst; row = r;
-        }
-        const s = row.reduce((a, b) => a + b.v, 0), len = s / rem * (horiz ? W : Hh);
-        let off = 0;
-        row.forEach(it => {
-            const l = it.v / s * side;
-            out.push(horiz ? { ...it, x: X, y: Y + off, w: len, h: l } : { ...it, x: X + off, y: Y, w: l, h: len });
-            off += l;
-        });
-        if (horiz) { X += len; W -= len; } else { Y += len; Hh -= len; }
-        rem -= s; rest = rest.slice(row.length);
-    }
-    return out;
+/* ============================== Platforms ============================== */
+let platOpen = new Set();
+function renderPlatforms() {
+    const P = S.by_platform || [];
+    if (!P.length) { $('plat-tbl').innerHTML = '<tbody><tr><td class="l muted">No transactions.</td></tr></tbody>'; return; }
+    let body = '';
+    P.forEach((b, i) => {
+        const open = platOpen.has(b.platform);
+        body += `<tr data-plat="${esc(b.platform)}" style="cursor:pointer">
+            <td class="l"><b>${open ? '▾' : '▸'} ${esc(b.platform)}</b><span class="sub">${b.positions.length} positions · ${b.tx_count} tx · ${b.currencies.join(', ')}</span></td>
+            <td>${ft(b.cost_huf)}</td><td><b>${ft(b.value_huf)}</b></td>
+            <td class="${cls(b.inv_pl_huf)}">${signed(b.inv_pl_huf)}</td>
+            <td class="${cls(b.fx_pl_huf)}">${signed(b.fx_pl_huf)}</td>
+            <td class="${cls(b.pl_huf)}">${signed(b.pl_huf)}<span class="sub ${cls(b.pl_huf)}">${pct(b.pl_pct)}</span></td>
+            <td>${num(b.weight, 1)}%<span class="w-bar"><i style="width:${Math.min(b.weight, 100)}%"></i></span></td></tr>`;
+        if (open) b.positions.forEach(p => body += `<tr style="background:#fafbfc">
+            <td class="l" style="padding-left:1.6rem">${esc(p.name)}<span class="sub">${TYPE_LABEL[p.type]} · ${p.currency}${p.currency !== 'HUF' && p.type !== 'cash' ? ` · ${pct(p.pl_ccy_pct)} in ${p.currency}` : ''}</span></td>
+            <td>${ft(p.cost_huf)}</td><td>${ft(p.value_huf)}</td>
+            <td class="${cls(p.pl_huf - p.fx_pl_huf)}">${signed(p.pl_huf - p.fx_pl_huf)}</td>
+            <td class="${cls(p.fx_pl_huf)}">${p.currency === 'HUF' ? '<span class="muted">—</span>' : signed(p.fx_pl_huf)}</td>
+            <td class="${cls(p.pl_huf)}">${signed(p.pl_huf)}<span class="sub ${cls(p.pl_huf)}">${pct(p.pl_pct)}</span></td><td></td></tr>`);
+    });
+    $('plat-tbl').innerHTML = `<thead><tr><th class="l">Platform</th><th>Invested</th><th>Value</th><th>Investments</th><th>Currency</th><th>P/L HUF</th><th>Weight</th></tr></thead><tbody>${body}</tbody>`;
 }
-function retColor(p) {
-    const t = Math.max(-1, Math.min(1, p / 25));   // ±25% = full colour
-    const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
-    const grey = [150, 158, 170], green = [31, 138, 91], red = [209, 67, 67];
-    const c = t >= 0 ? mix(grey, green, t) : mix(grey, red, -t);
-    return `rgb(${c.join(',')})`;
-}
-function renderTreemap() {
-    const box = $('i6'), W = box.clientWidth, Hh = box.clientHeight;
-    const items = S.positions.filter(p => p.value_huf > 0).map(p => ({ v: p.value_huf, p })).sort((a, b) => b.v - a.v);
-    if (!items.length) { box.innerHTML = '<div class="loading">No holdings.</div>'; return; }
-    box.innerHTML = squarify(items, 0, 0, W, Hh).map(t => `
-        <div class="tm" style="left:${t.x}px;top:${t.y}px;width:${t.w}px;height:${t.h}px;background:${retColor(t.p.pl_pct)}" title="${esc(t.p.name)}: ${huf(t.p.value_huf)} Ft · ${pct(t.p.pl_pct)}">
-            ${t.w > 70 && t.h > 38 ? `<b>${esc(t.p.symbol || t.p.name)}</b><span>${pct(t.p.pl_pct)}</span>${t.h > 64 ? `<br><span>${ft(t.p.value_huf)}</span>` : ''}` : ''}
-        </div>`).join('');
-}
-window.addEventListener('resize', () => S && renderTreemap());
+$('plat-tbl').addEventListener('click', e => {
+    const r = e.target.closest('[data-plat]'); if (!r) return;
+    const k = r.dataset.plat; platOpen.has(k) ? platOpen.delete(k) : platOpen.add(k); renderPlatforms();
+});
 
 /* ============================== Idea 7 ============================== */
 function renderLadder() {
@@ -610,13 +674,25 @@ function rateText(r, from, to) {
     return r >= 1 ? `${num(r, 4)} ${to}/${from}` : `${num(1 / r, 2)} ${from}/${to}`;
 }
 function renderFx() {
-    if (!S.fx.length) { $('i8').innerHTML = '<div class="muted" style="font-size:.85rem">No FX conversions logged.</div>'; return; }
-    $('i8').innerHTML = S.fx.map(f => `
+    $('i8').innerHTML = S.currencies.length ? `<div class="ccy-grid">` + S.currencies.map(c => {
+        const cashW = c.exposure_ccy > 0 ? Math.max(0, c.cash / c.exposure_ccy * 100) : 0;
+        return `<div class="ccy">
+            <div class="top"><b>${c.currency}</b><span>${money(c.exposure_ccy, c.currency)} <small class="muted">· ${ft(c.exposure_huf)} · ${num(c.weight, 1)}%</small></span></div>
+            <div class="split"><i style="width:${cashW}%"></i></div>
+            <div class="meta"><span><i class="dot cash"></i>Cash ${num(c.cash)}</span><span><i class="dot inv"></i>Invested ${num(c.holdings_value_ccy)} (cost ${num(c.invested_ccy)})</span></div>
+            <div class="nums">
+                <div><small>Avg rate acquired</small><b>${num(c.avg_rate, 2)} Ft</b></div>
+                <div><small>Today</small><b>${num(c.rate_now, 2)} Ft</b></div>
+                <div><small>Currency result</small><b class="${cls(c.fx_pl_huf)}">${signed(c.fx_pl_huf)}</b><small class="${cls(c.fx_pl_huf)}">${pct(c.fx_pl_pct)}</small></div>
+                <div><small>Investments in ${c.currency}</small><b class="${cls(c.inv_pl_huf)}">${signed(c.inv_pl_huf)}</b></div>
+            </div></div>`;
+    }).join('') + `</div>` : '<div class="muted" style="font-size:.85rem">No foreign currency held.</div>';
+    $('i8-fx').innerHTML = S.fx.length ? `<div style="font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">Conversions · rate you got vs today</div>` + S.fx.map(f => `
         <div class="r">
             <div class="n">${money(f.amount, f.currency)} → ${money(f.to_amount, f.to_currency)}
                 <small>${dLabel(f.date)} · got ${rateText(f.implied_rate, f.currency, f.to_currency)} · today ${rateText(f.rate_now, f.currency, f.to_currency)}</small></div>
             <div class="v ${cls(f.gain_huf)}">${signed(f.gain_huf)}<small class="${cls(f.gain_huf)}">${pct(f.gain_pct)} vs today</small></div>
-        </div>`).join('');
+        </div>`).join('') : '';
 }
 
 /* ============================== Idea 9 ============================== */
@@ -629,7 +705,7 @@ function renderManual() {
         return `<div class="r">
             <div style="min-width:0"><div class="n">${esc(p.name)} ${d > 90 ? '<span class="tag warn">update needed</span>' : ''}</div>
                 <div class="hbar"><i data-w="${w}" style="background:${color}"></i></div>
-                <small class="muted" style="font-size:.72rem">Last price ${money(p.price, p.currency)} on ${dLabel(p.price_date)} · ${d} days ago</small></div>
+                <small class="muted" style="font-size:.72rem">${qtyFmt(p.quantity)} units · value ${money(p.value_ccy, p.currency)} · price ${trimDec(num(p.price, 4))} · ${dLabel(p.price_date)}, ${d} days ago</small></div>
             <div class="v"><button class="btn btn-ghost" style="padding:.35rem .7rem;font-size:.75rem" data-price="${esc(p.name)}|${p.currency}">Update</button></div></div>`;
     }).join('');
     requestAnimationFrame(() => setTimeout(() => $('i9').querySelectorAll('.hbar i').forEach(i => i.style.width = i.dataset.w + '%'), 50));
@@ -647,16 +723,17 @@ function txDetails(t) {
 function renderTx() {
     const q = $('txSearch').value.trim().toLowerCase();
     const rows = S.transactions.filter(t => (!txType || t.type === txType) &&
-        (!q || [t.name, t.symbol, t.note, t.currency, t.to_currency].some(v => (v || '').toLowerCase().includes(q))));
-    $('txTable').innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Type</th><th class="l">Security / pair</th><th class="l">Details</th><th>Amount / rate</th><th class="l">Note</th><th></th></tr></thead><tbody>` +
+        (!q || [t.name, t.symbol, t.note, t.currency, t.to_currency, t.platform].some(v => (v || '').toLowerCase().includes(q))));
+    $('txTable').innerHTML = `<thead><tr><th class="l">Date</th><th class="l">Type</th><th class="l">Security / pair</th><th class="l">Details</th><th>Amount / rate</th><th class="l">Platform</th><th class="l">Note</th><th></th></tr></thead><tbody>` +
         (rows.map(t => { const d = txDetails(t); return `<tr>
             <td class="l">${dLabel(t.date)}</td>
-            <td class="l"><span class="tag t-${t.type}" style="margin:0">${TYPE_LABEL[t.type]}</span></td>
+            <td class="l"><span class="tag t-${t.type}" style="margin:0">${TYPE_LABEL[t.type]}</span>${t.external ? '<span class="tag" title="Paid with money from outside the portfolio">outside money</span>' : ''}</td>
             <td class="l" style="white-space:normal;min-width:180px">${d.what}</td>
             <td class="l">${d.detail}</td><td>${d.rate}</td>
+            <td class="l">${esc(t.platform || '')}</td>
             <td class="l muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${esc(t.note || '')}</td>
             <td><button class="icon-btn" data-edit="${t.id}" title="Edit" aria-label="Edit">✏️</button><button class="icon-btn" data-del="${t.id}" title="Delete" aria-label="Delete">🗑️</button></td></tr>`; }).join('')
-         || `<tr><td class="l muted" colspan="7">No transactions${q || txType ? ' match the filter' : ' yet'}.</td></tr>`) + '</tbody>';
+         || `<tr><td class="l muted" colspan="8">No transactions${q || txType ? ' match the filter' : ' yet'}.</td></tr>`) + '</tbody>';
 }
 $('txFilter').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; txType = b.dataset.t; $('txFilter').querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === b)); renderTx(); });
 $('txSearch').addEventListener('input', () => S && renderTx());
@@ -685,6 +762,7 @@ function setSide(s) {
     side = s;
     $('sideSel').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.side === s));
     $('amtLabel').textContent = s === 'SELL' ? 'Total received' : 'Total invested';
+    updateCalcs();
 }
 $('typeSel').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) setType(b.dataset.type); });
 $('sideSel').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setSide(b.dataset.side); });
@@ -702,16 +780,17 @@ function openTx(t = null) {
     $('delBtn').hidden = !t;
     // A transaction's type is fixed once saved (its fields differ); delete and re-add to change it
     $('typeSel').querySelectorAll('button').forEach(b => b.disabled = !!t && b.dataset.type !== t.type);
-    $('manualNames').innerHTML = (S?.manual_assets || []).map(a => `<option value="${esc(a.name)}">`).join('');
     $('f-date').value = t ? t.date : new Date().toISOString().slice(0, 10);
     setSide(t?.side || 'BUY');
     setPicked(null);
     if (t) {
         $('f-note').value = t.note || '';
+        $('f-plat').value = t.platform || '';
+        $('f-ext').checked = !!t.external;
         if (t.type === 'fx') { $('f-fcur').value = t.currency; $('f-famt').value = num(t.amount); $('f-tcur').value = t.to_currency; $('f-tamt').value = num(t.to_amount); }
         if (t.type === 'yahoo' || t.type === 'manual') { $('f-cur').value = t.currency; $('f-qty').value = qtyFmt(t.quantity); $('f-amt').value = num(t.amount); }
         if (t.type === 'yahoo') setPicked({ symbol: t.symbol, name: t.name, currency: t.currency });
-        if (t.type === 'manual') { $('f-name').value = t.name; $('f-price').value = trimDec(num(t.price, 4)); }
+        if (t.type === 'manual') $('f-name').value = t.name;
         if (t.type === 'zcb') { $('f-bname').value = t.name; $('f-zcur').value = t.currency; $('f-zamt').value = num(t.amount); $('f-face').value = num(t.face_value); $('f-mat').value = t.maturity; }
     }
     setType(t ? t.type : curType);
@@ -720,7 +799,18 @@ function openTx(t = null) {
 $('addBtn').addEventListener('click', () => openTx());
 
 /* --- live calculations (rate, unit price, yield) --- */
+function txCurrency() { return (curType === 'zcb' ? $('f-zcur').value : $('f-cur').value).trim().toUpperCase(); }
+function updateExternal() {
+    const c = txCurrency();
+    const show = (curType === 'zcb' || ((curType === 'yahoo' || curType === 'manual') && side === 'BUY')) && c.length === 3 && c !== 'HUF';
+    $('extRow').hidden = !show;
+    if (!show) $('f-ext').checked = false;
+    $('extRow').classList.toggle('on', $('f-ext').checked);
+    $('extHelp').textContent = `For holdings bought before you tracked the currency. ${c || 'The currency'} cash is not used; `
+        + `the cost is the amount at the ${c || ''}/HUF rate of the purchase date, and the holding adds to your ${c || 'currency'} exposure.`;
+}
 function updateCalcs() {
+    updateExternal();
     if (curType === 'fx') {
         const fa = parseNum($('f-famt').value), ta = parseNum($('f-tamt').value), fc = $('f-fcur').value.toUpperCase() || 'from', tc = $('f-tcur').value.toUpperCase() || 'to';
         $('fxCalc').innerHTML = fa > 0 && ta > 0
@@ -729,17 +819,25 @@ function updateCalcs() {
     }
     if (curType === 'yahoo' || curType === 'manual') {
         const q = parseNum($('f-qty').value), a = parseNum($('f-amt').value), c = $('f-cur').value.toUpperCase();
-        if (curType === 'manual') {
-            const p = parseNum($('f-price').value);
-            if (!amtTouched && q > 0 && p > 0) $('f-amt').value = num(q * p);
-        }
         const ok = q > 0 && parseNum($('f-amt').value) > 0;
         $('secCalc').hidden = !ok;
         if (ok) {
             const unit = parseNum($('f-amt').value) / q;
             let extra = '';
             if (curType === 'yahoo' && picked?.price) { const diff = (unit / picked.price - 1) * 100; extra = ` · current price ${num(picked.price)} ${picked.currency} (${pct(diff)} vs yours)`; }
-            $('secCalc').innerHTML = `Price per unit: <b>${trimDec(num(unit, 4))} ${c}</b>${extra}`;
+            // Foreign purchases are paid from that currency's cash (the portfolio is HUF-denominated)
+            let cashNote = '';
+            if (c && c !== 'HUF' && side === 'BUY' && $('f-ext').checked) {
+                cashNote = `<br>Outside money: ${c} cash is not touched; cost = amount × ${c}/HUF rate on ${$('f-date').value || 'the purchase date'}.`;
+            } else if (c && c !== 'HUF' && side === 'BUY') {
+                const held = (S?.positions || []).find(p => p.type === 'cash' && p.currency === c)?.quantity || 0;
+                const amt = parseNum($('f-amt').value);
+                cashNote = `<br>Paid from <b>${c} cash</b>: ${num(held)} ${c} available` +
+                    (amt > held + 0.005 ? ` <span class="neg">— ${num(amt - held)} ${c} short. Log an FX change first, or tick “Paid with money from outside”.</span>` : '');
+            } else if (c && c !== 'HUF' && side === 'SELL') {
+                cashNote = `<br>Proceeds go to <b>${c} cash</b>.`;
+            }
+            $('secCalc').innerHTML = `Price per unit: <b>${trimDec(num(unit, 4))} ${c}</b>${extra}${cashNote}`;
         }
     }
     if (curType === 'zcb') {
@@ -795,14 +893,51 @@ $('results').addEventListener('click', async e => {
 $('pkChange').addEventListener('click', () => { setPicked(null); $('f-search').value = ''; $('f-search').focus(); });
 document.addEventListener('click', e => { if (!e.target.closest('#searchBox')) $('results').hidden = true; });
 
+/* --- Not on Yahoo: pick a security added before or type a new one --- */
+function renderNames() {
+    const q = $('f-name').value.trim().toLowerCase();
+    const all = S?.manual_assets || [];
+    const list = all.filter(a => !q || a.name.toLowerCase().includes(q));
+    const exact = all.some(a => a.name.toLowerCase() === q);
+    $('nameResults').innerHTML = list.map((a, i) => `<button type="button" data-n="${i}"><b>${esc(a.name)}</b><small>${a.currency}</small></button>`).join('')
+        + (q && !exact ? `<button type="button" data-new="1"><b>+ Add new:</b><span class="nm">${esc($('f-name').value.trim())}</span></button>` : '')
+        || '<div class="loading" style="padding:.8rem">Type a name to add a new security.</div>';
+    $('nameResults')._data = list;
+    $('nameResults').hidden = false;
+}
+$('f-name').addEventListener('focus', renderNames);
+$('f-name').addEventListener('input', renderNames);
+$('f-name').addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); $('nameResults').hidden = true; } });
+$('nameResults').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.n != null) { const a = $('nameResults')._data[+b.dataset.n]; $('f-name').value = a.name; $('f-cur').value = a.currency; }
+    $('nameResults').hidden = true; updateCalcs(); $('f-qty').focus();
+});
+document.addEventListener('click', e => { if (!e.target.closest('#nameBox')) $('nameResults').hidden = true; });
+
+/* --- Platform: pick one used before or type a new one --- */
+function renderPlats() {
+    const raw = $('f-plat').value.trim(), q = raw.toLowerCase(), all = S?.platforms || [];
+    const list = all.filter(p => !q || p.toLowerCase().includes(q));
+    $('platResults').innerHTML = list.map(p => `<button type="button" data-p="${esc(p)}"><b>${esc(p)}</b></button>`).join('')
+        + (q && !all.some(p => p.toLowerCase() === q) ? `<button type="button" data-p="${esc(raw)}"><b>+ Add new:</b><span class="nm">${esc(raw)}</span></button>` : '')
+        || '<div class="loading" style="padding:.8rem">Type a platform name to add it.</div>';
+    $('platResults').hidden = false;
+}
+$('f-plat').addEventListener('focus', renderPlats);
+$('f-plat').addEventListener('input', renderPlats);
+$('f-plat').addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'Tab') $('platResults').hidden = true; });
+$('platResults').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('f-plat').value = b.dataset.p; $('platResults').hidden = true; });
+document.addEventListener('click', e => { if (!e.target.closest('#platBox')) $('platResults').hidden = true; });
+
 /* --- save / delete --- */
 $('txForm').addEventListener('submit', async e => {
     e.preventDefault();
     const n = id => { const v = parseNum($(id).value); return isNaN(v) ? '' : v; };
-    const body = { type: curType, date: $('f-date').value, note: $('f-note').value };
+    const body = { type: curType, date: $('f-date').value, note: $('f-note').value, platform: $('f-plat').value, external: $('f-ext').checked && !$('extRow').hidden };
     if (curType === 'fx') Object.assign(body, { currency: $('f-fcur').value, amount: n('f-famt'), to_currency: $('f-tcur').value, to_amount: n('f-tamt') });
     if (curType === 'yahoo') Object.assign(body, { side, symbol: picked?.symbol || '', name: picked?.name || '', currency: $('f-cur').value, quantity: n('f-qty'), amount: n('f-amt') });
-    if (curType === 'manual') Object.assign(body, { side, name: $('f-name').value, currency: $('f-cur').value, quantity: n('f-qty'), price: n('f-price'), amount: n('f-amt') });
+    if (curType === 'manual') Object.assign(body, { side, name: $('f-name').value, currency: $('f-cur').value, quantity: n('f-qty'), amount: n('f-amt') });
     if (curType === 'zcb') Object.assign(body, { name: $('f-bname').value, currency: $('f-zcur').value, amount: n('f-zamt'), face_value: n('f-face'), maturity: $('f-mat').value });
     $('saveBtn').disabled = true;
     try {
@@ -819,21 +954,37 @@ $('delBtn').addEventListener('click', async () => {
 
 /* ============================== Manual price dialog ============================== */
 const pdlg = $('priceDlg');
+function priceAsset() { const [name, cur] = ($('p-asset').value || '|').split('|'); return { name, cur }; }
 function renderPriceHist() {
-    const [name, cur] = ($('p-asset').value || '|').split('|');
-    $('pPriceLbl').textContent = `Price (${cur || '—'})`;
-    const rows = (S.prices || []).filter(p => p.name === name && p.currency === cur);
-    const txp = S.transactions.filter(t => t.type === 'manual' && t.name === name && t.currency === cur);
-    $('priceHist').innerHTML = rows.map(p => `<div class="r"><div class="n">${dLabel(p.date)}<small>manual update</small></div><div class="v" style="display:flex;gap:.5rem;align-items:center">${money(p.price, p.currency)}<button type="button" class="icon-btn" data-pdel="${p.id}" title="Delete price">🗑️</button></div></div>`).join('') +
-        txp.map(t => `<div class="r"><div class="n">${dLabel(t.date)}<small>${t.side === 'SELL' ? 'sell' : 'buy'} transaction</small></div><div class="v">${money(t.price, t.currency)}</div></div>`).join('') ||
-        '<div class="muted" style="font-size:.85rem">No prices yet.</div>';
+    const { name, cur } = priceAsset();
+    $('pValLbl').textContent = `Current value (${cur || '—'})`;
+    const held = S.positions.find(p => p.type === 'manual' && p.name === name && p.currency === cur);
+    $('p-qty').value = held ? qtyFmt(held.quantity) : '';
+    updatePriceCalc();
+    const rows = (S.prices || []).filter(p => p.name === name && p.currency === cur).map(p => ({ ...p, kind: 'update' }));
+    const txp = S.transactions.filter(t => t.type === 'manual' && t.name === name && t.currency === cur).map(t => ({ ...t, kind: 'tx' }));
+    const all = [...rows, ...txp].sort((a, b) => b.date.localeCompare(a.date));
+    $('priceHist').innerHTML = all.map(p => p.kind === 'update'
+        ? `<div class="r"><div class="n">${dLabel(p.date)}<small>update${p.quantity ? ` · ${qtyFmt(p.quantity)} units · value ${money(p.value, p.currency)}` : ''}</small></div><div class="v" style="display:flex;gap:.5rem;align-items:center">${money(p.price, p.currency)}<button type="button" class="icon-btn" data-pdel="${p.id}" title="Delete update">🗑️</button></div></div>`
+        : `<div class="r"><div class="n">${dLabel(p.date)}<small>${p.side === 'SELL' ? 'sell' : 'buy'} · ${qtyFmt(p.quantity)} units · ${money(p.amount, p.currency)}</small></div><div class="v">${money(p.price || p.amount / p.quantity, p.currency)}</div></div>`).join('')
+        || '<div class="muted" style="font-size:.85rem">No history yet.</div>';
 }
+function updatePriceCalc() {
+    const q = parseNum($('p-qty').value), v = parseNum($('p-value').value), { name, cur } = priceAsset();
+    const held = S.positions.find(p => p.type === 'manual' && p.name === name && p.currency === cur);
+    $('pCalc').innerHTML = q > 0 && v > 0
+        ? `Price per unit: <b>${trimDec(num(v / q, 4))} ${cur}</b>` + (held ? ` · invested ${money(held.cost_ccy, cur)} → <b class="${cls(v - held.cost_ccy)}">${pct((v / held.cost_ccy - 1) * 100)}</b>` : '')
+            + (held && Math.abs(q - held.quantity) > 1e-9 ? `<br>Quantity changes from ${qtyFmt(held.quantity)} to ${qtyFmt(q)} (e.g. reinvested units; no cost added).` : '')
+        : 'Enter quantity and current value; the price is calculated.';
+}
+$('p-qty').addEventListener('input', updatePriceCalc);
+$('p-value').addEventListener('input', updatePriceCalc);
 function openPrice(key) {
     if (!S.manual_assets.length) { toast('Add a “Not on Yahoo” security first'); return; }
     $('p-asset').innerHTML = S.manual_assets.map(a => `<option value="${esc(a.name)}|${a.currency}">${esc(a.name)} (${a.currency})</option>`).join('');
     if (key) $('p-asset').value = key;
-    $('p-date').value = new Date().toISOString().slice(0, 10); $('p-price').value = ''; $('priceErr').textContent = '';
-    renderPriceHist(); pdlg.showModal(); $('p-price').focus();
+    $('p-date').value = new Date().toISOString().slice(0, 10); $('p-value').value = ''; $('priceErr').textContent = '';
+    renderPriceHist(); pdlg.showModal(); $('p-value').focus();
 }
 $('priceBtn').addEventListener('click', () => S && openPrice());
 $('p-asset').addEventListener('change', renderPriceHist);
@@ -845,8 +996,8 @@ $('priceForm').addEventListener('submit', async e => {
     e.preventDefault();
     const [name, currency] = $('p-asset').value.split('|');
     try {
-        await api('/api/portfolio/prices', { method: 'POST', body: JSON.stringify({ name, currency, date: $('p-date').value, price: parseNum($('p-price').value) }) });
-        pdlg.close(); toast('Price saved'); load();
+        await api('/api/portfolio/prices', { method: 'POST', body: JSON.stringify({ name, currency, date: $('p-date').value, quantity: parseNum($('p-qty').value), value: parseNum($('p-value').value) }) });
+        pdlg.close(); toast('Update saved'); load();
     } catch (err) { $('priceErr').textContent = err.message; }
 });
 

@@ -81,7 +81,9 @@ def init_portfolio():
          yahoo  - side, symbol, name, currency, quantity, amount (total invested / received)
          manual - side, name, currency, quantity, price, amount
          zcb    - name, currency, amount (invested), face_value, maturity
-       portfolio_price: manual price updates for 'manual' securities (matched by name + currency)."""
+       external = 1 on a non-HUF BUY: paid with money from outside the portfolio (not from that
+       currency's cash) - its cost is the amount at the HUF rate of the purchase date.
+       portfolio_price: manual updates (quantity + current value -> price = value / quantity) for 'manual' securities (matched by name + currency)."""
     with get_cursor() as cur:
         if IS_POSTGRES:
             cur.execute("""CREATE TABLE IF NOT EXISTS portfolio_tx (
@@ -89,16 +91,31 @@ def init_portfolio():
                 symbol VARCHAR(40), name VARCHAR(200), currency CHAR(3), quantity NUMERIC(20,6), price NUMERIC(20,6),
                 amount NUMERIC(20,2), to_currency CHAR(3), to_amount NUMERIC(20,2), face_value NUMERIC(20,2),
                 maturity DATE, note VARCHAR(300));""")
+            cur.execute("ALTER TABLE portfolio_tx ADD COLUMN IF NOT EXISTS external INTEGER DEFAULT 0;")
+            cur.execute("ALTER TABLE portfolio_tx ADD COLUMN IF NOT EXISTS platform VARCHAR(100);")
             cur.execute("""CREATE TABLE IF NOT EXISTS portfolio_price (
                 id SERIAL PRIMARY KEY, name VARCHAR(200) NOT NULL, currency CHAR(3) NOT NULL, date DATE NOT NULL, price NUMERIC(20,6) NOT NULL);""")
+            cur.execute("ALTER TABLE portfolio_price ADD COLUMN IF NOT EXISTS quantity NUMERIC(24,8);")
+            cur.execute("ALTER TABLE portfolio_price ADD COLUMN IF NOT EXISTS value NUMERIC(20,2);")
         else:
             cur.execute("""CREATE TABLE IF NOT EXISTS portfolio_tx (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL, side TEXT DEFAULT 'BUY',
                 symbol TEXT, name TEXT, currency TEXT, quantity REAL, price REAL,
                 amount REAL, to_currency TEXT, to_amount REAL, face_value REAL,
                 maturity TEXT, note TEXT);""")
+            cur.execute("PRAGMA table_info(portfolio_tx)")
+            have = [r[1] for r in cur.fetchall()]
+            if "external" not in have:
+                cur.execute("ALTER TABLE portfolio_tx ADD COLUMN external INTEGER DEFAULT 0;")
+            if "platform" not in have:
+                cur.execute("ALTER TABLE portfolio_tx ADD COLUMN platform TEXT;")
             cur.execute("""CREATE TABLE IF NOT EXISTS portfolio_price (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, currency TEXT NOT NULL, date TEXT NOT NULL, price REAL NOT NULL);""")
+            cur.execute("PRAGMA table_info(portfolio_price)")
+            have = [r[1] for r in cur.fetchall()]
+            for col in ("quantity", "value"):
+                if col not in have:
+                    cur.execute(f"ALTER TABLE portfolio_price ADD COLUMN {col} REAL;")
 
 # ------------------------------ [Initialize All Tables] ------------------------------
 # Tables: expense_record, income_record, expense_target, money_log, portfolio_tx, portfolio_price
