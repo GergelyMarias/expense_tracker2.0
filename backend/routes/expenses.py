@@ -6,16 +6,17 @@ from utils import convert_to_huf
 expenses_bp = Blueprint("expenses", __name__)
 
 # ------------------------------ Expenses Route ------------------------------
-# Old dashboard address: forward to the dashboard (keeps month/year)
+# Old dashboard addresses: forward to the dashboard (keeps month/year)
 @expenses_bp.route("/expenses")
+@expenses_bp.route("/dashboard-b")
 def expenses():
     qs = request.query_string.decode()
-    return redirect("/dashboard-b" + (f"?{qs}" if qs else ""))
+    return redirect("/dashboard" + (f"?{qs}" if qs else ""))
 
 
-@expenses_bp.route("/dashboard-b", methods=["GET", "POST"])
-def dashboard_b():
-    return _dashboard("main_b.html", "/dashboard-b")
+@expenses_bp.route("/dashboard", methods=["GET", "POST"])
+def dashboard():
+    return _dashboard("dashboard.html", "/dashboard")
 
 
 def _dashboard(template, base_url):
@@ -59,7 +60,7 @@ def _dashboard(template, base_url):
 # ------------------------------ Expense Management ------------------------------
 def _back_url():
     """Where to return after editing/deleting: the dashboard you came from, same month."""
-    back = "/dashboard-b"
+    back = "/dashboard"
     month = request.args.get("month", date.today().strftime("%Y-%m"))
     year = request.args.get("year", month.split("-")[0])
     return f"{back}?month={month}&year={year}", back, month, year

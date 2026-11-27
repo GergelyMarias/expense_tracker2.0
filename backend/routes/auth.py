@@ -14,14 +14,14 @@ auth_bp = Blueprint("auth", __name__)
 def login():
     """Login page. 'Hide amounts' chosen here blurs money values on every page for this session."""
     if session.get("logged_in"):
-        return redirect("/dashboard-b")
+        return redirect("/dashboard")
 
     error = None
     if request.method == "POST":
         if request.form.get("password") == APP_PASSWORD:
             session["logged_in"] = True
             session["hide_amounts"] = request.form.get("hide_amounts") == "on"
-            return redirect("/dashboard-b")
+            return redirect("/dashboard")
         error = "Wrong password."
 
     return render_template("login.html", error=error)

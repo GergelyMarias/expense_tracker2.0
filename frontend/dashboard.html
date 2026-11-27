@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dashboard B</title>
+    <title>Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -165,8 +165,8 @@
 <header>
     <div class="brand">Finance</div>
     <nav>
-        <a href="/dashboard-b" class="active">🏠 Dashboard</a>
-        <a href="/money-b">💰 Money</a>
+        <a href="/dashboard" class="active">🏠 Dashboard</a>
+        <a href="/money">💰 Money</a>
         <a href="/portfolio">📈 Portfolio</a>
         <a href="/targets">🎯 Targets</a>
         <a href="/cashflow">💸 CashFlow</a>
@@ -261,8 +261,8 @@
                     </div>
                     <div class="amt">{{ ft(e.forint) }} Ft</div>
                     <div class="acts">
-                        <a class="icon-btn" href="/expense/edit/{{ e.id }}?month={{ exp_month }}&year={{ selected_year }}&back=/dashboard-b" title="Edit">✏️</a>
-                        <form method="POST" action="/expense/delete/{{ e.id }}?month={{ exp_month }}&year={{ selected_year }}&back=/dashboard-b" onsubmit="return confirm('Delete this expense?')">
+                        <a class="icon-btn" href="/expense/edit/{{ e.id }}?month={{ exp_month }}&year={{ selected_year }}&back=/dashboard" title="Edit">✏️</a>
+                        <form method="POST" action="/expense/delete/{{ e.id }}?month={{ exp_month }}&year={{ selected_year }}&back=/dashboard" onsubmit="return confirm('Delete this expense?')">
                             <button class="icon-btn" title="Delete">🗑️</button>
                         </form>
                     </div>

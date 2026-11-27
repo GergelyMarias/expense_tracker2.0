@@ -6,9 +6,9 @@ from utils import get_huf_rate
 money_bp = Blueprint('money', __name__)
 
 # ------------------------------ [Old Money page address] ------------------------------
-@money_bp.route('/money')
-def money_summary():
-    return redirect('/money-b')
+@money_bp.route('/money-b')
+def money_b_redirect():
+    return redirect('/money')
 
 # ------------------------------ [Money Register View] ------------------------------
 @money_bp.route('/money/register')
@@ -90,13 +90,13 @@ def api_save_logs():
     )
     return jsonify({"status": "success" if success else "error"})
 
-# ------------------------------ [Money B: redesigned overview] ------------------------------
+# ------------------------------ [Money overview] ------------------------------
 def _num(v):
     return float(v or 0)
 
 
-@money_bp.route('/money-b')
-def money_b():
+@money_bp.route('/money')
+def money_page():
     """Net-worth overview: snapshots from money_log, plan from income_record, spend from expense_record."""
     month_extract = "to_char(date, 'YYYY-MM')" if IS_POSTGRES else "strftime('%Y-%m', date)"
     with get_cursor() as cur:
@@ -158,7 +158,7 @@ def money_b():
         targets = [{"month": r["m"], "target": _num(r["target"])} for r in cur.fetchall() if r["m"]]
 
     return render_template(
-        'money_b.html',
+        'money.html',
         snaps=snaps, accounts=accounts, prev_accounts=prev_accounts,
         plan=plan, spending=spending, targets=targets,
         today=datetime.now().strftime("%Y-%m"),
